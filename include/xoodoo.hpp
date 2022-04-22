@@ -98,12 +98,12 @@ theta(uint32_t* const state)
 //
 // See algorithm 1 of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
-template<const size_t t, const size_t v>
+template<const size_t t1, const size_t v1, const size_t t2, const size_t v2>
 static inline void
 rho(uint32_t* const state)
 {
-  cyclic_shift(state + 4, t, v);
-  cyclic_shift(state + 8, t, v);
+  cyclic_shift(state + 4, t1, v1);
+  cyclic_shift(state + 8, t2, v2);
 }
 
 // ι step mapping function of Xoodoo permutation, where round constant is XORed
@@ -171,6 +171,55 @@ chi(uint32_t* const state)
   for (size_t i = 0; i < 4; i++) {
     state[i + 8] ^= b2[i];
   }
+}
+
+// Single round of Xoodoo permutation, which applies following step mappings on
+// state, in order
+//
+// - mixing layer θ
+// - plane shifting ρ_west
+// - addition of round constants ι
+// - non-linear layer χ
+// - plane shifting ρ_east
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const size_t r_idx>
+static inline void
+round(uint32_t* const state)
+{
+  // mixing layer
+  theta(state);
+  // plane shifting
+  rho<1, 0, 0, 11>(state);
+  // add round constant
+  iota<r_idx>(state);
+  // non-linear layer
+  chi(state);
+  // plane shifting
+  rho<0, 1, 2, 8>(state);
+}
+
+// Xoodoo permutation function, where 12 rounds of Xoodoo round function applied
+// on internal state
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline void
+permute(uint32_t* const state)
+{
+  round<0>(state);
+  round<1>(state);
+  round<2>(state);
+  round<3>(state);
+  round<4>(state);
+  round<5>(state);
+  round<6>(state);
+  round<7>(state);
+  round<8>(state);
+  round<9>(state);
+  round<10>(state);
+  round<11>(state);
 }
 
 }
