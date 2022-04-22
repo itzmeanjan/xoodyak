@@ -93,4 +93,84 @@ theta(uint32_t* const state)
   }
 }
 
+// ρ step mapping function of Xoodoo permutation, which is templated so that it
+// can act as both `ρ_east` and `ρ_west`
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const size_t t, const size_t v>
+static inline void
+rho(uint32_t* const state)
+{
+  cyclic_shift(state + 4, t, v);
+  cyclic_shift(state + 8, t, v);
+}
+
+// ι step mapping function of Xoodoo permutation, where round constant is XORed
+// into first lane ( x = 0 ) of first plane ( y = 0 ) of internal state
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const size_t r_idx>
+static inline void
+iota(uint32_t* const state)
+{
+  state[0] ^= ROUNDS[r_idx];
+}
+
+// χ step mapping function of Xoodoo permutation, which is a non-linear layer
+// applied on state during permutation round
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline void
+chi(uint32_t* const state)
+{
+  uint32_t b0[4];
+  uint32_t b1[4];
+  uint32_t b2[4];
+
+#if defined(__clang__)
+#pragma unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    b0[i] = ~state[i + 4] & state[i + 8];
+  }
+
+#if defined(__clang__)
+#pragma unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    b1[i] = ~state[i + 8] & state[i];
+  }
+
+#if defined(__clang__)
+#pragma unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    b2[i] = ~state[i] & state[i + 4];
+  }
+
+#if defined(__clang__)
+#pragma unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    state[i] ^= b0[i];
+  }
+
+#if defined(__clang__)
+#pragma unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    state[i + 4] ^= b1[i];
+  }
+
+#if defined(__clang__)
+#pragma unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    state[i + 8] ^= b2[i];
+  }
+}
+
 }
