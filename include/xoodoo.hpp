@@ -33,7 +33,7 @@ cyclic_shift(uint32_t* const plane, const size_t t, const size_t v)
 #pragma unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
-    plane[i] = std::rotl(plane[i], v);
+    plane[i] = std::rotl(plane[i], static_cast<int>(v));
   }
 
   uint32_t shifted[4];
@@ -115,7 +115,7 @@ template<const size_t r_idx>
 static inline void
 iota(uint32_t* const state)
 {
-  state[0] ^= ROUNDS[r_idx];
+  state[0] ^= RC[r_idx];
 }
 
 // χ step mapping function of Xoodoo permutation, which is a non-linear layer
