@@ -1,6 +1,7 @@
 #pragma once
 #include "utils.hpp"
 #include "xoodoo.hpp"
+#include <algorithm>
 
 // Cyclist mode of operation, used in Xoodyak cryptographic suite !
 namespace cyclist {
@@ -192,6 +193,44 @@ absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
     } else {
       down<m, 0x00>(state, msg + b_off, part_blk_byt, ph);
     }
+  }
+}
+
+// Internal function used in Cyclist mode of operation, which produces N -bytes
+// output, by squeezing those many bytes out of permutation state
+//
+// See second point of sub-section `Inside Cyclist` in section 2.2 of Xoodyak
+// specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+//
+// Also see algorithmic definition in algorithm 3 of aforelinked document
+template<const mode_t m, const size_t rate, const uint8_t color>
+static inline void
+squeeze_any(uint32_t* const __restrict state, // 384 -bit permutation state
+            uint8_t* const __restrict out,    // squeezed output to be written
+            const size_t o_len,               // squeeze these many bytes
+            phase_t* const __restrict ph      // phase of cyclist mode
+)
+{
+  // in first round of squeeze `upto` -bytes will be
+  // attempted to be squeezed out of state
+  const size_t upto = std::min(o_len, rate);
+  up<m, color>(state, out, upto, ph);
+
+  // if no more bytes required ( happens when o_len <= rate ),
+  // don't need any more squeezing
+  if (o_len == upto) {
+    return;
+  }
+
+  // when more bytes are required to be squeezed out of state
+  size_t l = upto;
+  while (l < o_len) {
+    down<m, 0x00>(state, nullptr, 0ul, ph);
+
+    const size_t tmp = std::min(o_len - l, rate);
+    up<m, 0x00>(state, out + l, tmp, ph);
+    l += tmp;
   }
 }
 
