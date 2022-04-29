@@ -82,7 +82,7 @@ down(uint32_t* const __restrict state,
     state[11] ^= static_cast<uint32_t>(color);
   }
 
-  *ph = phase_t::Down;
+  ph[0] = phase_t::Down;
 }
 
 // Internal function used in Cyclist mode of operation, which aims to produce
@@ -132,7 +132,67 @@ up(uint32_t* const __restrict state,
     blk[b_off + 0] = static_cast<uint8_t>(lane >> 24);
   }
 
-  *ph = phase_t::Up;
+  ph[0] = phase_t::Up;
+}
+
+// Internal function used in Cyclist mode of operation, which absorbs N -many
+// bytes into permutation state
+//
+// See second point of sub-section `Inside Cyclist` in section 2.2 of Xoodyak
+// specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+//
+// Also see algorithmic definition in algorithm 3 of aforelinked document
+template<const mode_t m, const size_t rate, const uint8_t color>
+static inline void
+absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
+           const uint8_t* const __restrict msg, // input message to be absorbed
+           const size_t m_len,                  // len(msg) | >= 0
+           phase_t* const __restrict ph         // phase of cyclist mode
+)
+{
+  // handling case where input string to `split(...)` is empty
+  if (m_len == 0) {
+    if (ph[0] != phase_t::Up) {
+      up<m, 0x00>(state, nullptr, 0ul, ph);
+    }
+
+    down<m, color>(state, nullptr, 0ul, ph);
+    return;
+  }
+
+  // handling case when input string to `split(...)` is non-empty
+  const size_t full_blk_cnt = m_len / rate;
+  const size_t part_blk_byt = m_len % rate;
+
+  for (size_t i = 0; i < full_blk_cnt; i++) {
+    const size_t b_off = i * rate;
+
+    if (ph[0] != phase_t::Up) {
+      up<m, 0x00>(state, nullptr, 0ul, ph);
+    }
+
+    if (i == 0ul) {
+      down<m, color>(state, msg + b_off, rate, ph);
+    } else {
+      down<m, 0x00>(state, msg + b_off, rate, ph);
+    }
+  }
+
+  // handling last message block, which might not have `rate` -many bytes
+  if (part_blk_byt > 0ul) {
+    const size_t b_off = full_blk_cnt * rate;
+
+    if (ph[0] != phase_t::Up) {
+      up<m, 0x00>(state, nullptr, 0ul, ph);
+    }
+
+    if (full_blk_cnt == 0ul) {
+      down<m, color>(state, msg + b_off, part_blk_byt, ph);
+    } else {
+      down<m, 0x00>(state, msg + b_off, part_blk_byt, ph);
+    }
+  }
 }
 
 }
