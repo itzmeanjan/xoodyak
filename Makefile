@@ -21,3 +21,6 @@ bench/a.out: bench/main.cpp include/*.hpp
 
 benchmark: bench/a.out
 	./$<
+
+test_kat:
+	bash test.sh
