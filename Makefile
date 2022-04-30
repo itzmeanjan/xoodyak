@@ -17,7 +17,7 @@ lib:
 bench/a.out: bench/main.cpp include/*.hpp
 	# make sure you've google-benchmark globally installed;
 	# see https://github.com/google/benchmark/tree/60b16f1#installation
-	$(CXX) $(CXXFLAGS) -Wno-global-constructors $(OPTFLAGS) $(IFLAGS) $< -lbenchmark -lpthead -o $@
+	$(CXX) $(CXXFLAGS) -Wno-global-constructors $(OPTFLAGS) $(IFLAGS) $< -lbenchmark -lpthread -o $@
 
 benchmark: bench/a.out
 	./$<
