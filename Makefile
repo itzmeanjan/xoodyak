@@ -13,3 +13,11 @@ format:
 
 lib:
 	$(CXX) $(CXXFLAGS) -Wno-unused-function $(OPTFLAGS) $(IFLAGS) -fPIC --shared wrapper/xoodyak.cpp -o wrapper/libxoodyak.so
+
+bench/a.out: bench/main.cpp include/*.hpp
+	# make sure you've google-benchmark globally installed;
+	# see https://github.com/google/benchmark/tree/60b16f1#installation
+	$(CXX) $(CXXFLAGS) -Wno-global-constructors $(OPTFLAGS) $(IFLAGS) $< -lbenchmark -lpthead -o $@
+
+benchmark: bench/a.out
+	./$<
