@@ -27,6 +27,51 @@ enum mode_t
   Keyed // keyed permutation
 };
 
+// Absorb/ squeeze rate in hash mode of Xoodyak, see definition 2 in section 2.3
+// of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+constexpr size_t R_Hash = 16ul;
+
+// Absorb rate in keyed mode of Xoodyak, see definition 2 in section 2.3
+// of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+constexpr size_t R_Kin = 44ul;
+
+// Squeeze rate in keyed mode of Xoodyak, see definition 2 in section 2.3
+// of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+constexpr size_t R_Kout = 24ul;
+
+// Rate in keyed mode of Xoodyak, when permutation state is transformed in a
+// irreversible way by invoking `ratchet(...)`, ensuring forward secrecy; see
+// definition 2 in section 2.3 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+constexpr size_t l_ratchet = 16ul;
+
+// Color value used for domain seperation in hash mode of `absorb()`
+constexpr uint8_t Absorb_Color_Hash = 0x01u;
+
+// Color value used for domain seperation in keyed mode of `absorb()`
+constexpr uint8_t Absorb_Color_Keyed = 0x03u;
+
+// Color value used for domain seperation in `absorb_key()`
+constexpr uint8_t AbsorbKey_Color = 0x02u;
+
+// Color value used for domain seperation in `crypt()`
+constexpr uint8_t Crypt_Color = 0x80u;
+
+// Color value used for domain seperation in `squeeze()`
+constexpr uint8_t Squeeze_Color = 0x40u;
+
+// Color value used for domain seperation in `squeeze_key()`
+constexpr uint8_t SqueezeKey_Color = 0x20u;
+
+// Color value used for domain seperation in `ratchet()`
+constexpr uint8_t Ratchet_Color = 0x10u;
+
+// Color value used when no domain seperation is required
+constexpr uint8_t Zero_Color = 0x00u;
+
 // Internal function used in Cyclist mode of operation, which consumes N -bytes
 //
 // See `Inside Cyclist` in section 2.2 of Xoodyak specification
@@ -155,7 +200,7 @@ absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
   // handling case where input string to `split(...)` is empty
   if (m_len == 0) {
     if (ph[0] != phase_t::Up) {
-      up<m, 0x00>(state, nullptr, 0ul, ph);
+      up<m, Zero_Color>(state, nullptr, 0ul, ph);
     }
 
     down<m, color>(state, nullptr, 0ul, ph);
@@ -170,13 +215,13 @@ absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
     const size_t b_off = i * rate;
 
     if (ph[0] != phase_t::Up) {
-      up<m, 0x00>(state, nullptr, 0ul, ph);
+      up<m, Zero_Color>(state, nullptr, 0ul, ph);
     }
 
     if (i == 0ul) {
       down<m, color>(state, msg + b_off, rate, ph);
     } else {
-      down<m, 0x00>(state, msg + b_off, rate, ph);
+      down<m, Zero_Color>(state, msg + b_off, rate, ph);
     }
   }
 
@@ -185,13 +230,13 @@ absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
     const size_t b_off = full_blk_cnt * rate;
 
     if (ph[0] != phase_t::Up) {
-      up<m, 0x00>(state, nullptr, 0ul, ph);
+      up<m, Zero_Color>(state, nullptr, 0ul, ph);
     }
 
     if (full_blk_cnt == 0ul) {
       down<m, color>(state, msg + b_off, part_blk_byt, ph);
     } else {
-      down<m, 0x00>(state, msg + b_off, part_blk_byt, ph);
+      down<m, Zero_Color>(state, msg + b_off, part_blk_byt, ph);
     }
   }
 }
@@ -226,11 +271,49 @@ squeeze_any(uint32_t* const __restrict state, // 384 -bit permutation state
   // when more bytes are required to be squeezed out of state
   size_t l = upto;
   while (l < o_len) {
-    down<m, 0x00>(state, nullptr, 0ul, ph);
+    down<m, Zero_Color>(state, nullptr, 0ul, ph);
 
     const size_t tmp = std::min(o_len - l, rate);
-    up<m, 0x00>(state, out + l, tmp, ph);
+    up<m, Zero_Color>(state, out + l, tmp, ph);
     l += tmp;
+  }
+}
+
+// External function used in Cyclist mode of operation, which consumes N -bytes
+// input string, by absorbing those many bytes into permutation state
+//
+// Also see algorithmic definition in algorithm 2 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const mode_t m>
+static inline void
+absorb(uint32_t* const __restrict state,
+       const uint8_t* const __restrict msg,
+       const size_t m_len,
+       phase_t* const __restrict ph)
+{
+  if constexpr (m == mode_t::Hash) {
+    absorb_any<m, R_Hash, Absorb_Color_Hash>(state, msg, m_len, ph);
+  } else if constexpr (m == mode_t::Keyed) {
+    absorb_any<m, R_Kin, Absorb_Color_Keyed>(state, msg, m_len, ph);
+  }
+}
+
+// External function used in Cyclist mode of operation, which produces N -bytes
+// output string, by squeezing those many bytes out of permutation state
+//
+// Also see algorithmic definition in algorithm 2 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const mode_t m>
+static inline void
+squeeze(uint32_t* const __restrict state,
+        uint8_t* const __restrict out,
+        const size_t o_len,
+        phase_t* const __restrict ph)
+{
+  if constexpr (m == mode_t::Hash) {
+    squeeze_any<m, R_Hash, Squeeze_Color>(state, out, o_len, ph);
+  } else if constexpr (m == mode_t::Keyed) {
+    squeeze_any<m, R_Kout, Squeeze_Color>(state, out, o_len, ph);
   }
 }
 
