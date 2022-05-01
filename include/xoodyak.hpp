@@ -1,6 +1,8 @@
 #pragma once
 #include "cyclist.hpp"
 
+// Xoodyak Cryptographic Suite --- Hash function, Authenticated Encryption with
+// Associated Data ( read AEAD ) scheme
 namespace xoodyak {
 
 // Xoodyak hash digest length in bytes
