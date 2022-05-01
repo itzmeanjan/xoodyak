@@ -316,17 +316,18 @@ absorb_key(
 }
 
 // Internal function used in Cyclist mode of operation, which encrypts plain
-// text/ decrypts cipher text
+// text/ decrypts cipher text ( based on template parameter's truthness )
 //
 // See algorithmic definition in algorithm 3 of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
 template<const bool decrypt>
 static inline void
-crypt(uint32_t* const __restrict state,
-      const uint8_t* const __restrict in,
-      uint8_t* const __restrict out,
-      const size_t io_len,
-      phase_t* const __restrict ph)
+crypt(uint32_t* const __restrict state,   // 384 -bit permutation state
+      const uint8_t* const __restrict in, // N -bytes input message
+      uint8_t* const __restrict out,      // N -bytes output message
+      const size_t io_len,                // len(in) == len(out) == N | N >= 0
+      phase_t* const __restrict ph        // phase of cyclist mode of operation
+)
 {
   // handling case where input string to `split(...)` is empty
   if (io_len == 0ul) {
@@ -427,6 +428,39 @@ squeeze(uint32_t* const __restrict state,
   } else if constexpr (m == mode_t::Keyed) {
     squeeze_any<m, R_Kout, Squeeze_Color>(state, out, o_len, ph);
   }
+}
+
+// External function used in Cyclist mode of operation, which encrypts N -bytes
+// plain text input message
+//
+// Also see algorithmic definition in algorithm 2 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline void
+encrypt(
+  uint32_t* const __restrict state,     // 384 -bit permutation state
+  const uint8_t* const __restrict text, // N (>= 0) -bytes plain text to encrypt
+  uint8_t* const __restrict cipher,     // N (>= 0) -bytes encrypted text
+  const size_t ct_len,                  // len(text) == len(cipher) == N
+  phase_t* const __restrict ph          // phase of cyclist mode of operation
+)
+{
+  crypt<false>(state, text, cipher, ct_len, ph);
+}
+
+// External function used in Cyclist mode of operation, which decrypts N -bytes
+// cipher text input message back to plain text
+//
+// Also see algorithmic definition in algorithm 2 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline void
+decrypt(uint32_t* const __restrict state,       // 384 -bit permutation state
+        const uint8_t* const __restrict cipher, // N (>=0) -bytes encrypted text
+        uint8_t* const __restrict text,         // N (>=0) -bytes decrypted text
+        const size_t ct_len,                    // len(cipher) == len(text) == N
+        phase_t* const __restrict ph            // phase of cyclist mode
+)
+{
+  crypt<true>(state, cipher, text, ct_len, ph);
 }
 
 }
