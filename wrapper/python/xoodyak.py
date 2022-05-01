@@ -8,7 +8,7 @@
 
   Author: Anjan Roy <hello@itzmeanjan.in>
   
-  Project: https://github.com/itzmeanjan/tinyjambu
+  Project: https://github.com/itzmeanjan/xoodyak
 """
 
 import ctypes as ct

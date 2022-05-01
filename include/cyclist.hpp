@@ -278,6 +278,43 @@ squeeze_any(uint32_t* const __restrict state, // 384 -bit permutation state
   }
 }
 
+// Internal function used in Cyclist mode of operation, which absorbs 128 -bit
+// secret key & 128 -bit public message nonce into permutation state
+//
+// See algorithmic definition in algorithm 3 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline void
+absorb_key(
+  uint32_t* const __restrict state,      // 384 -bit permutation state
+  const uint8_t* const __restrict key,   // 128 -bit secret key
+  const uint8_t* const __restrict nonce, // 128 -bit public message nonce
+  phase_t* const __restrict ph           // phase of cyclist mode of operation
+)
+{
+  // temporary buffer for contiguous storage of
+  // `key || nonce || len(nonce)`
+  uint8_t msg[33];
+
+#if defined __clang__
+#pragma unroll 16
+#endif
+  for (size_t i = 0; i < 16; i++) {
+    msg[i] = key[i];
+  }
+
+#if defined __clang__
+#pragma unroll 16
+#endif
+  for (size_t i = 0; i < 16; i++) {
+    msg[16ul ^ i] = nonce[i];
+  }
+
+  // byte length of nonce, which is preknown to be 16
+  msg[32] = static_cast<uint8_t>(16u);
+
+  absorb_any<mode_t::Keyed, R_Kin, AbsorbKey_Color>(state, msg, 33ul, ph);
+}
+
 // External function used in Cyclist mode of operation, which consumes N -bytes
 // input string, by absorbing those many bytes into permutation state
 //
