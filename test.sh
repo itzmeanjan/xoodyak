@@ -17,6 +17,7 @@ unzip xoodyak.zip
 
 # copy Known Answer Tests outside of uncompressed NIST LWC submission directory
 cp xoodyak/Implementations/crypto_hash/xoodyakround3/LWC_HASH_KAT_256.txt ../
+cp xoodyak/Implementations/crypto_aead/xoodyakround3/LWC_AEAD_KAT_128_128.txt ../
 
 popd
 
@@ -27,6 +28,7 @@ rm -rf tmp
 
 # move Known Answer Tests to execution directory
 mv LWC_HASH_KAT_256.txt wrapper/python/
+mv LWC_AEAD_KAT_128_128.txt wrapper/python/
 
 # ---
 
