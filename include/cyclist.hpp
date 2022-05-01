@@ -315,6 +315,82 @@ absorb_key(
   absorb_any<mode_t::Keyed, R_Kin, AbsorbKey_Color>(state, msg, 33ul, ph);
 }
 
+// Internal function used in Cyclist mode of operation, which encrypts plain
+// text/ decrypts cipher text
+//
+// See algorithmic definition in algorithm 3 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const bool decrypt>
+static inline void
+crypt(uint32_t* const __restrict state,
+      const uint8_t* const __restrict in,
+      uint8_t* const __restrict out,
+      const size_t io_len,
+      phase_t* const __restrict ph)
+{
+  // handling case where input string to `split(...)` is empty
+  if (io_len == 0ul) {
+    up<mode_t::Keyed, Crypt_Color>(state, nullptr, 0ul, ph);
+    down<mode_t::Keyed, Zero_Color>(state, nullptr, 0ul, ph);
+    return;
+  }
+
+  // handling case when input string to `split(...)` is non-empty
+  const size_t full_blk_cnt = io_len / R_Kout;
+  const size_t part_blk_byt = io_len % R_Kout;
+
+  for (size_t i = 0; i < full_blk_cnt; i++) {
+    const size_t b_off = i * R_Kout;
+
+    if (i == 0ul) {
+      up<mode_t::Keyed, Crypt_Color>(state, out + b_off, R_Kout, ph);
+    } else {
+      up<mode_t::Keyed, Zero_Color>(state, out + b_off, R_Kout, ph);
+    }
+
+#if defined __clang__
+#pragma unroll 16
+#endif
+    for (size_t j = 0; j < 16; j++) {
+      out[b_off + j] ^= in[b_off + j];
+    }
+
+#if defined __clang__
+#pragma unroll 8
+#endif
+    for (size_t j = 0; j < 8; j++) {
+      out[b_off + (16ul ^ j)] ^= in[b_off + (16ul ^ j)];
+    }
+
+    if constexpr (decrypt) {
+      down<mode_t::Keyed, Zero_Color>(state, out + b_off, R_Kout, ph);
+    } else {
+      down<mode_t::Keyed, Zero_Color>(state, in + b_off, R_Kout, ph);
+    }
+  }
+
+  // handling last message block, which might not have `R_kout` -many bytes
+  if (part_blk_byt > 0ul) {
+    const size_t b_off = full_blk_cnt * R_Kout;
+
+    if (full_blk_cnt == 0ul) {
+      up<mode_t::Keyed, Crypt_Color>(state, out + b_off, part_blk_byt, ph);
+    } else {
+      up<mode_t::Keyed, Zero_Color>(state, out + b_off, part_blk_byt, ph);
+    }
+
+    for (size_t i = 0; i < part_blk_byt; i++) {
+      out[b_off + i] ^= in[b_off + i];
+    }
+
+    if constexpr (decrypt) {
+      down<mode_t::Keyed, Zero_Color>(state, out + b_off, part_blk_byt, ph);
+    } else {
+      down<mode_t::Keyed, Zero_Color>(state, in + b_off, part_blk_byt, ph);
+    }
+  }
+}
+
 // External function used in Cyclist mode of operation, which consumes N -bytes
 // input string, by absorbing those many bytes into permutation state
 //
