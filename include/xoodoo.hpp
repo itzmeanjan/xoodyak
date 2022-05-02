@@ -31,6 +31,8 @@ cyclic_shift(uint32_t* const plane, const size_t t, const size_t v)
 {
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     plane[i] = std::rotl(plane[i], static_cast<int>(v));
@@ -40,6 +42,8 @@ cyclic_shift(uint32_t* const plane, const size_t t, const size_t v)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     shifted[(i + t) % 4] = plane[i];
@@ -47,6 +51,8 @@ cyclic_shift(uint32_t* const plane, const size_t t, const size_t v)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     plane[i] = shifted[i];
@@ -65,6 +71,8 @@ theta(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     const uint32_t parity = state[i] ^ state[i + 4] ^ state[i + 8];
@@ -78,6 +86,8 @@ theta(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     e[i] = p0[i] ^ p1[i];
@@ -85,6 +95,8 @@ theta(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i] ^= e[i];
@@ -132,6 +144,8 @@ chi(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     b0[i] = ~state[i + 4] & state[i + 8];
@@ -139,6 +153,8 @@ chi(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     b1[i] = ~state[i + 8] & state[i];
@@ -146,6 +162,8 @@ chi(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     b2[i] = ~state[i] & state[i + 4];
@@ -153,6 +171,8 @@ chi(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i] ^= b0[i];
@@ -160,6 +180,8 @@ chi(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i + 4] ^= b1[i];
@@ -167,6 +189,8 @@ chi(uint32_t* const state)
 
 #if defined(__clang__)
 #pragma unroll 4
+#elif defined __GNUG__
+#pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i + 8] ^= b2[i];

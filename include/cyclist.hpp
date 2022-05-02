@@ -297,6 +297,8 @@ absorb_key(
 
 #if defined __clang__
 #pragma unroll 16
+#elif defined __GNUG__
+#pragma GCC unroll 16
 #endif
   for (size_t i = 0; i < 16; i++) {
     msg[i] = key[i];
@@ -304,6 +306,8 @@ absorb_key(
 
 #if defined __clang__
 #pragma unroll 16
+#elif defined __GNUG__
+#pragma GCC unroll 16
 #endif
   for (size_t i = 0; i < 16; i++) {
     msg[16ul ^ i] = nonce[i];
@@ -351,6 +355,8 @@ crypt(uint32_t* const __restrict state,   // 384 -bit permutation state
 
 #if defined __clang__
 #pragma unroll 16
+#elif defined __GNUG__
+#pragma GCC unroll 16
 #endif
     for (size_t j = 0; j < 16; j++) {
       out[b_off + j] ^= in[b_off + j];
@@ -358,6 +364,8 @@ crypt(uint32_t* const __restrict state,   // 384 -bit permutation state
 
 #if defined __clang__
 #pragma unroll 8
+#elif defined __GNUG__
+#pragma GCC unroll 8
 #endif
     for (size_t j = 0; j < 8; j++) {
       out[b_off + (16ul ^ j)] ^= in[b_off + (16ul ^ j)];
