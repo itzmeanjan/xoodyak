@@ -86,6 +86,12 @@ decrypt(const uint8_t* const __restrict key,   // 128 -bit secret key
   cyclist::squeeze<cyclist::mode_t::Keyed>(state, tag_, 16ul, &ph);
 
   bool f = false;
+
+#if defined __clang__
+#elif defined __GNUG__
+#pragma GCC unroll 16
+#pragma GCC ivdep
+#endif
   for (size_t i = 0; i < 16; i++) {
     f |= static_cast<bool>(tag[i] ^ tag_[i]);
   }
