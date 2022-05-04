@@ -11,10 +11,22 @@ using size_t = std::size_t;
 static inline uint32_t
 from_le_bytes(const uint8_t* const bytes)
 {
+
+#if defined __clang__
   return (static_cast<uint32_t>(bytes[3]) << 24) |
          (static_cast<uint32_t>(bytes[2]) << 16) |
          (static_cast<uint32_t>(bytes[1]) << 8) |
          (static_cast<uint32_t>(bytes[0]) << 0);
+#elif defined __GNUG__
+  uint32_t word = 0u;
+
+#pragma GCC unroll 4
+#pragma GCC ivdep
+  for (size_t i = 0; i < 4; i++) {
+    word |= static_cast<uint32_t>(bytes[i]) << (i << 3);
+  }
+  return word;
+#endif
 }
 
 // Given a 32 -bit unsigned integer, this function interprets it as a little
@@ -23,7 +35,6 @@ static inline void
 to_le_bytes(const uint32_t word, uint8_t* const bytes)
 {
 #if defined __clang__
-#pragma unroll 4
 #elif defined __GNUG__
 #pragma GCC unroll 4
 #endif
