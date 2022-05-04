@@ -26,8 +26,9 @@ constexpr uint32_t RC[ROUNDS] = { 0x00000058, 0x00000038, 0x000003c0,
 //
 // See row 2 of table 1 in Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const int t, const int v>
 static inline void
-cyclic_shift(uint32_t* const plane, const size_t t, const size_t v)
+cyclic_shift(uint32_t* const plane)
 {
 #if defined(__clang__)
 #pragma unroll 4
@@ -35,7 +36,7 @@ cyclic_shift(uint32_t* const plane, const size_t t, const size_t v)
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
-    plane[i] = std::rotl(plane[i], static_cast<int>(v));
+    plane[i] = std::rotl(plane[i], v);
   }
 
   uint32_t shifted[4];
@@ -46,7 +47,7 @@ cyclic_shift(uint32_t* const plane, const size_t t, const size_t v)
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
-    shifted[(i + t) % 4] = plane[i];
+    shifted[(i + t) & 3u] = plane[i];
   }
 
 #if defined(__clang__)
@@ -75,14 +76,14 @@ theta(uint32_t* const state)
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
-    const uint32_t parity = state[i] ^ state[i + 4] ^ state[i + 8];
+    const uint32_t parity = state[i] ^ state[i ^ 4] ^ state[i ^ 8];
 
     p0[i] = parity;
     p1[i] = parity;
   }
 
-  cyclic_shift(p0, 1, 5);
-  cyclic_shift(p1, 1, 14);
+  cyclic_shift<1, 5>(p0);
+  cyclic_shift<1, 14>(p1);
 
 #if defined(__clang__)
 #pragma unroll 4
@@ -100,8 +101,8 @@ theta(uint32_t* const state)
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i] ^= e[i];
-    state[i + 4] ^= e[i];
-    state[i + 8] ^= e[i];
+    state[i ^ 4] ^= e[i];
+    state[i ^ 8] ^= e[i];
   }
 }
 
@@ -114,8 +115,8 @@ template<const size_t t1, const size_t v1, const size_t t2, const size_t v2>
 static inline void
 rho(uint32_t* const state)
 {
-  cyclic_shift(state + 4, t1, v1);
-  cyclic_shift(state + 8, t2, v2);
+  cyclic_shift<t1, v1>(state + 4);
+  cyclic_shift<t2, v2>(state + 8);
 }
 
 // ι step mapping function of Xoodoo permutation, where round constant is XORed
@@ -123,9 +124,8 @@ rho(uint32_t* const state)
 //
 // See algorithm 1 of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
-template<const size_t r_idx>
 static inline void
-iota(uint32_t* const state)
+iota(uint32_t* const state, const size_t r_idx)
 {
   state[0] ^= RC[r_idx];
 }
@@ -148,25 +148,9 @@ chi(uint32_t* const state)
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
-    b0[i] = ~state[i + 4] & state[i + 8];
-  }
-
-#if defined(__clang__)
-#pragma unroll 4
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    b1[i] = ~state[i + 8] & state[i];
-  }
-
-#if defined(__clang__)
-#pragma unroll 4
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    b2[i] = ~state[i] & state[i + 4];
+    b0[i] = ~state[i ^ 4] & state[i ^ 8];
+    b1[i] = ~state[i ^ 8] & state[i];
+    b2[i] = ~state[i] & state[i ^ 4];
   }
 
 #if defined(__clang__)
@@ -176,24 +160,8 @@ chi(uint32_t* const state)
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i] ^= b0[i];
-  }
-
-#if defined(__clang__)
-#pragma unroll 4
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    state[i + 4] ^= b1[i];
-  }
-
-#if defined(__clang__)
-#pragma unroll 4
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    state[i + 8] ^= b2[i];
+    state[i ^ 4] ^= b1[i];
+    state[i ^ 8] ^= b2[i];
   }
 }
 
@@ -208,16 +176,15 @@ chi(uint32_t* const state)
 //
 // See algorithm 1 of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
-template<const size_t r_idx>
 static inline void
-round(uint32_t* const state)
+round(uint32_t* const state, const size_t r_idx)
 {
   // mixing layer
   theta(state);
   // plane shifting
   rho<1, 0, 0, 11>(state);
   // add round constant
-  iota<r_idx>(state);
+  iota(state, r_idx);
   // non-linear layer
   chi(state);
   // plane shifting
@@ -232,18 +199,9 @@ round(uint32_t* const state)
 static inline void
 permute(uint32_t* const state)
 {
-  round<0>(state);
-  round<1>(state);
-  round<2>(state);
-  round<3>(state);
-  round<4>(state);
-  round<5>(state);
-  round<6>(state);
-  round<7>(state);
-  round<8>(state);
-  round<9>(state);
-  round<10>(state);
-  round<11>(state);
+  for (size_t i = 0; i < ROUNDS; i++) {
+    round(state, i);
+  }
 }
 
 }
