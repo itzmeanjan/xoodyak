@@ -93,40 +93,16 @@ down(uint32_t* const __restrict state,
     state[i] ^= lane;
   }
 
-  if (part_lane_byt == 3ul) {
-    const size_t b_off = full_lane_cnt << 2;
+  const size_t b_off = full_lane_cnt << 2;
+  uint32_t lane = 0x01u << (part_lane_byt << 3);
 
-    const uint32_t lane = (0x01u << 24) |
-                          (static_cast<uint32_t>(blk[b_off + 2]) << 16) |
-                          (static_cast<uint32_t>(blk[b_off + 1]) << 8) |
-                          (static_cast<uint32_t>(blk[b_off + 0]) << 0);
-
-    state[full_lane_cnt] ^= lane;
-  } else if (part_lane_byt == 2ul) {
-    const size_t b_off = full_lane_cnt << 2;
-
-    const uint32_t lane = (0x01u << 16) |
-                          (static_cast<uint32_t>(blk[b_off + 1]) << 8) |
-                          (static_cast<uint32_t>(blk[b_off + 0]) << 0);
-
-    state[full_lane_cnt] ^= lane;
-  } else if (part_lane_byt == 1ul) {
-    const size_t b_off = full_lane_cnt << 2;
-
-    const uint32_t lane = (0x01u << 8) | static_cast<uint32_t>(blk[b_off + 0]);
-
-    state[full_lane_cnt] ^= lane;
-  } else {
-    const uint32_t lane = 0x01u;
-    state[full_lane_cnt] ^= lane;
+  for (size_t i = 0; i < part_lane_byt; i++) {
+    lane |= static_cast<uint32_t>(blk[b_off + i]) << (i << 3);
   }
 
-  if (m == mode_t::Hash) {
-    state[11] ^= static_cast<uint32_t>(color) << 24;
-  } else {
-    state[11] ^= static_cast<uint32_t>(color) << 24;
-  }
+  state[full_lane_cnt] ^= lane;
 
+  state[11] ^= static_cast<uint32_t>(color) << 24;
   ph[0] = phase_t::Down;
 }
 
@@ -144,7 +120,7 @@ up(uint32_t* const __restrict state,
    const size_t b_len,
    phase_t* const __restrict ph)
 {
-  if (m == mode_t::Keyed) {
+  if constexpr (m == mode_t::Keyed) {
     state[11] ^= static_cast<uint32_t>(color) << 24;
   }
 
@@ -157,24 +133,11 @@ up(uint32_t* const __restrict state,
     to_le_bytes(state[i], blk + (i << 2));
   }
 
-  if (part_lane_byt == 3ul) {
-    const size_t b_off = full_lane_cnt << 2;
-    const uint32_t lane = state[full_lane_cnt];
+  const size_t b_off = full_lane_cnt << 2;
+  const uint32_t lane = state[full_lane_cnt];
 
-    blk[b_off + 0] = static_cast<uint8_t>(lane >> 0);
-    blk[b_off + 1] = static_cast<uint8_t>(lane >> 8);
-    blk[b_off + 2] = static_cast<uint8_t>(lane >> 16);
-  } else if (part_lane_byt == 2ul) {
-    const size_t b_off = full_lane_cnt << 2;
-    const uint32_t lane = state[full_lane_cnt];
-
-    blk[b_off + 0] = static_cast<uint8_t>(lane >> 0);
-    blk[b_off + 1] = static_cast<uint8_t>(lane >> 8);
-  } else if (part_lane_byt == 1ul) {
-    const size_t b_off = full_lane_cnt << 2;
-    const uint32_t lane = state[full_lane_cnt];
-
-    blk[b_off + 0] = static_cast<uint8_t>(lane >> 0);
+  for (size_t i = 0; i < part_lane_byt; i++) {
+    blk[b_off + i] = static_cast<uint8_t>(lane >> (i << 3));
   }
 
   ph[0] = phase_t::Up;
@@ -196,48 +159,23 @@ absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
            phase_t* const __restrict ph         // phase of cyclist mode
 )
 {
-  // handling case where input string to `split(...)` is empty
-  if (m_len == 0) {
+  size_t b_off = 0;
+  do {
     if (ph[0] != phase_t::Up) {
       up<m, Zero_Color>(state, nullptr, 0ul, ph);
     }
 
-    down<m, color>(state, nullptr, 0ul, ph);
-    return;
-  }
+    const size_t tmp = std::min(rate, m_len - b_off);
 
-  // handling case when input string to `split(...)` is non-empty
-  const size_t full_blk_cnt = m_len / rate;
-  const size_t part_blk_byt = m_len % rate;
-
-  for (size_t i = 0; i < full_blk_cnt; i++) {
-    const size_t b_off = i * rate;
-
-    if (ph[0] != phase_t::Up) {
-      up<m, Zero_Color>(state, nullptr, 0ul, ph);
-    }
-
-    if (i == 0ul) {
-      down<m, color>(state, msg + b_off, rate, ph);
+    if (b_off == 0ul) {
+      down<m, color>(state, msg + b_off, tmp, ph);
     } else {
-      down<m, Zero_Color>(state, msg + b_off, rate, ph);
-    }
-  }
-
-  // handling last message block, which might not have `rate` -many bytes
-  if (part_blk_byt > 0ul) {
-    const size_t b_off = full_blk_cnt * rate;
-
-    if (ph[0] != phase_t::Up) {
-      up<m, Zero_Color>(state, nullptr, 0ul, ph);
+      down<m, Zero_Color>(state, msg + b_off, tmp, ph);
     }
 
-    if (full_blk_cnt == 0ul) {
-      down<m, color>(state, msg + b_off, part_blk_byt, ph);
-    } else {
-      down<m, Zero_Color>(state, msg + b_off, part_blk_byt, ph);
-    }
-  }
+    b_off += tmp;
+
+  } while (b_off < m_len);
 }
 
 // Internal function used in Cyclist mode of operation, which produces N -bytes
@@ -296,21 +234,31 @@ absorb_key(
   uint8_t msg[33];
 
 #if defined __clang__
-#pragma unroll 16
+#pragma unroll 8
 #elif defined __GNUG__
-#pragma GCC unroll 16
+#pragma GCC unroll 8
+#pragma GCC ivdep
 #endif
-  for (size_t i = 0; i < 16; i++) {
-    msg[i] = key[i];
+  for (size_t i = 0; i < 8; i++) {
+    const size_t idx0 = i << 1;
+    const size_t idx1 = idx0 ^ 1;
+
+    msg[idx0] = key[idx0];
+    msg[idx1] = key[idx1];
   }
 
 #if defined __clang__
-#pragma unroll 16
+#pragma unroll 8
 #elif defined __GNUG__
-#pragma GCC unroll 16
+#pragma GCC unroll 8
+#pragma GCC ivdep
 #endif
-  for (size_t i = 0; i < 16; i++) {
-    msg[16ul ^ i] = nonce[i];
+  for (size_t i = 0; i < 8; i++) {
+    const size_t idx0 = i << 1;
+    const size_t idx1 = idx0 ^ 1;
+
+    msg[16ul ^ idx0] = nonce[idx0];
+    msg[16ul ^ idx1] = nonce[idx1];
   }
 
   // byte length of nonce, which is preknown to be 16
@@ -333,71 +281,32 @@ crypt(uint32_t* const __restrict state,   // 384 -bit permutation state
       phase_t* const __restrict ph        // phase of cyclist mode of operation
 )
 {
-  // handling case where input string to `split(...)` is empty
-  if (io_len == 0ul) {
-    up<mode_t::Keyed, Crypt_Color>(state, nullptr, 0ul, ph);
-    down<mode_t::Keyed, Zero_Color>(state, nullptr, 0ul, ph);
-    return;
-  }
+  size_t b_off = 0;
+  do {
+    const size_t tmp = std::min(R_Kout, io_len - b_off);
 
-  // handling case when input string to `split(...)` is non-empty
-  const size_t full_blk_cnt = io_len / R_Kout;
-  const size_t part_blk_byt = io_len % R_Kout;
-
-  for (size_t i = 0; i < full_blk_cnt; i++) {
-    const size_t b_off = i * R_Kout;
-
-    if (i == 0ul) {
-      up<mode_t::Keyed, Crypt_Color>(state, out + b_off, R_Kout, ph);
+    if (b_off == 0ul) {
+      up<mode_t::Keyed, Crypt_Color>(state, out + b_off, tmp, ph);
     } else {
-      up<mode_t::Keyed, Zero_Color>(state, out + b_off, R_Kout, ph);
+      up<mode_t::Keyed, Zero_Color>(state, out + b_off, tmp, ph);
     }
 
 #if defined __clang__
-#pragma unroll 16
 #elif defined __GNUG__
-#pragma GCC unroll 16
+#pragma GCC ivdep
 #endif
-    for (size_t j = 0; j < 16; j++) {
-      out[b_off + j] ^= in[b_off + j];
-    }
-
-#if defined __clang__
-#pragma unroll 8
-#elif defined __GNUG__
-#pragma GCC unroll 8
-#endif
-    for (size_t j = 0; j < 8; j++) {
-      out[b_off + (16ul ^ j)] ^= in[b_off + (16ul ^ j)];
-    }
-
-    if constexpr (decrypt) {
-      down<mode_t::Keyed, Zero_Color>(state, out + b_off, R_Kout, ph);
-    } else {
-      down<mode_t::Keyed, Zero_Color>(state, in + b_off, R_Kout, ph);
-    }
-  }
-
-  // handling last message block, which might not have `R_kout` -many bytes
-  if (part_blk_byt > 0ul) {
-    const size_t b_off = full_blk_cnt * R_Kout;
-
-    if (full_blk_cnt == 0ul) {
-      up<mode_t::Keyed, Crypt_Color>(state, out + b_off, part_blk_byt, ph);
-    } else {
-      up<mode_t::Keyed, Zero_Color>(state, out + b_off, part_blk_byt, ph);
-    }
-
-    for (size_t i = 0; i < part_blk_byt; i++) {
+    for (size_t i = 0; i < tmp; i++) {
       out[b_off + i] ^= in[b_off + i];
     }
 
     if constexpr (decrypt) {
-      down<mode_t::Keyed, Zero_Color>(state, out + b_off, part_blk_byt, ph);
+      down<mode_t::Keyed, Zero_Color>(state, out + b_off, tmp, ph);
     } else {
-      down<mode_t::Keyed, Zero_Color>(state, in + b_off, part_blk_byt, ph);
+      down<mode_t::Keyed, Zero_Color>(state, in + b_off, tmp, ph);
     }
-  }
+
+    b_off += tmp;
+  } while (b_off < io_len);
 }
 
 // External function used in Cyclist mode of operation, which consumes N -bytes

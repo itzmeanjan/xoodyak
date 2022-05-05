@@ -147,74 +147,74 @@ make benchmark # must have `google-benchmark`
 ### On ARM Cortex A72
 
 ```bash
-2022-05-02T08:49:59+05:30
+2022-05-05T08:56:57+05:30
 Running ./bench/a.out
 Run on (4 X 1800 MHz CPU s)
-Load Average: 2.56, 3.57, 2.64
+Load Average: 1.45, 0.66, 0.63
 ----------------------------------------------------------------------------
 Benchmark                  Time             CPU   Iterations UserCounters...
 ----------------------------------------------------------------------------
-hash_32B                1292 ns         1288 ns       546293 bytes_per_second=23.6973M/s items_per_second=776.514k/s
-hash_64B                2103 ns         2100 ns       332950 bytes_per_second=29.0585M/s items_per_second=476.095k/s
-hash_128B               3804 ns         3804 ns       183945 bytes_per_second=32.0888M/s items_per_second=262.872k/s
-hash_256B               7154 ns         7149 ns        96973 bytes_per_second=34.1488M/s items_per_second=139.873k/s
-hash_512B              13933 ns        13929 ns        50244 bytes_per_second=35.0552M/s items_per_second=71.793k/s
-hash_1024B             27450 ns        27449 ns        25498 bytes_per_second=35.5771M/s items_per_second=36.4309k/s
-hash_2048B             54638 ns        54631 ns        12878 bytes_per_second=35.751M/s items_per_second=18.3045k/s
-hash_4096B            108240 ns       108179 ns         6450 bytes_per_second=36.1092M/s items_per_second=9.24395k/s
-encrypt_32B_64B         2306 ns         2306 ns       305559 bytes_per_second=39.7065M/s items_per_second=433.701k/s
-encrypt_32B_128B        3712 ns         3709 ns       187964 bytes_per_second=41.1377M/s items_per_second=269.6k/s
-encrypt_32B_256B        6123 ns         6122 ns       114814 bytes_per_second=44.8657M/s items_per_second=163.351k/s
-encrypt_32B_512B       11378 ns        11378 ns        60919 bytes_per_second=45.5985M/s items_per_second=87.8924k/s
-encrypt_32B_1024B      21359 ns        21358 ns        32730 bytes_per_second=47.1527M/s items_per_second=46.8212k/s
-encrypt_32B_2048B      42039 ns        42016 ns        16734 bytes_per_second=47.2111M/s items_per_second=23.8002k/s
-encrypt_32B_4096B      82883 ns        82876 ns         8489 bytes_per_second=47.5016M/s items_per_second=12.0662k/s
-decrypt_32B_64B         2283 ns         2283 ns       307477 bytes_per_second=40.1053M/s items_per_second=438.057k/s
-decrypt_32B_128B        3785 ns         3784 ns       185221 bytes_per_second=40.3239M/s items_per_second=264.266k/s
-decrypt_32B_256B        6201 ns         6200 ns       105630 bytes_per_second=44.3002M/s items_per_second=161.292k/s
-decrypt_32B_512B       11453 ns        11452 ns        60904 bytes_per_second=45.3031M/s items_per_second=87.323k/s
-decrypt_32B_1024B      21672 ns        21663 ns        30196 bytes_per_second=46.4887M/s items_per_second=46.1618k/s
-decrypt_32B_2048B      42371 ns        42306 ns        16535 bytes_per_second=46.888M/s items_per_second=23.6373k/s
-decrypt_32B_4096B      86808 ns        86641 ns         8443 bytes_per_second=45.4375M/s items_per_second=11.5418k/s
+hash_32B                 803 ns          801 ns       869238 bytes_per_second=38.0901M/s items_per_second=1.24814M/s
+hash_64B                1333 ns         1329 ns       526557 bytes_per_second=45.9377M/s items_per_second=752.643k/s
+hash_128B               2369 ns         2364 ns       295114 bytes_per_second=51.6394M/s items_per_second=423.03k/s
+hash_256B               4734 ns         4534 ns       156153 bytes_per_second=53.8447M/s items_per_second=220.548k/s
+hash_512B               8583 ns         8577 ns        79767 bytes_per_second=56.9309M/s items_per_second=116.594k/s
+hash_1024B             16898 ns        16888 ns        41411 bytes_per_second=57.8258M/s items_per_second=59.2136k/s
+hash_2048B             33518 ns        33496 ns        20877 bytes_per_second=58.3092M/s items_per_second=29.8543k/s
+hash_4096B             66741 ns        66683 ns        10472 bytes_per_second=58.5795M/s items_per_second=14.9964k/s
+encrypt_32B_64B         1447 ns         1446 ns       483464 bytes_per_second=63.3331M/s items_per_second=691.766k/s
+encrypt_32B_128B        2335 ns         2333 ns       299398 bytes_per_second=65.4115M/s items_per_second=428.681k/s
+encrypt_32B_256B        4259 ns         3896 ns       183474 bytes_per_second=70.4892M/s items_per_second=256.643k/s
+encrypt_32B_512B        7170 ns         7094 ns        97952 bytes_per_second=73.1355M/s items_per_second=140.971k/s
+encrypt_32B_1024B      13321 ns        13263 ns        52898 bytes_per_second=75.932M/s items_per_second=75.3982k/s
+encrypt_32B_2048B      26026 ns        25925 ns        27039 bytes_per_second=76.5146M/s items_per_second=38.5728k/s
+encrypt_32B_4096B      50953 ns        50901 ns        13620 bytes_per_second=77.3411M/s items_per_second=19.6458k/s
+decrypt_32B_64B         1497 ns         1480 ns       476973 bytes_per_second=61.8614M/s items_per_second=675.692k/s
+decrypt_32B_128B        2385 ns         2369 ns       293295 bytes_per_second=64.4053M/s items_per_second=422.087k/s
+decrypt_32B_256B        3835 ns         3833 ns       182543 bytes_per_second=71.655M/s items_per_second=260.888k/s
+decrypt_32B_512B        7053 ns         7052 ns        98745 bytes_per_second=73.5724M/s items_per_second=141.813k/s
+decrypt_32B_1024B      13242 ns        13235 ns        52683 bytes_per_second=76.0917M/s items_per_second=75.5568k/s
+decrypt_32B_2048B      25892 ns        25874 ns        27030 bytes_per_second=76.6648M/s items_per_second=38.6485k/s
+decrypt_32B_4096B      50977 ns        50943 ns        13681 bytes_per_second=77.278M/s items_per_second=19.6298k/s
 ```
 
 ### On Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz
 
 ```bash
-2022-05-01T07:34:18+00:00
+2022-05-05T03:33:03+00:00
 Running ./bench/a.out
-Run on (4 X 2300.07 MHz CPU s)
+Run on (4 X 2300 MHz CPU s)
 CPU Caches:
   L1 Data 32 KiB (x2)
   L1 Instruction 32 KiB (x2)
   L2 Unified 256 KiB (x2)
   L3 Unified 46080 KiB (x1)
-Load Average: 0.08, 0.02, 0.01
+Load Average: 0.14, 0.06, 0.02
 ----------------------------------------------------------------------------
 Benchmark                  Time             CPU   Iterations UserCounters...
 ----------------------------------------------------------------------------
-hash_32B                 465 ns          465 ns      1506912 bytes_per_second=65.6857M/s items_per_second=2.15239M/s
-hash_64B                 776 ns          776 ns       900928 bytes_per_second=78.64M/s items_per_second=1.28844M/s
-hash_128B               1396 ns         1396 ns       501084 bytes_per_second=87.4257M/s items_per_second=716.191k/s
-hash_256B               2634 ns         2634 ns       265735 bytes_per_second=92.6943M/s items_per_second=379.676k/s
-hash_512B               5117 ns         5117 ns       136725 bytes_per_second=95.4322M/s items_per_second=195.445k/s
-hash_1024B             10079 ns        10078 ns        69482 bytes_per_second=96.8969M/s items_per_second=99.2224k/s
-hash_2048B             19989 ns        19989 ns        34888 bytes_per_second=97.7103M/s items_per_second=50.0277k/s
-hash_4096B             39820 ns        39817 ns        17573 bytes_per_second=98.1049M/s items_per_second=25.1149k/s
-encrypt_32B_64B          839 ns          839 ns       834154 bytes_per_second=109.108M/s items_per_second=1.19175M/s
-encrypt_32B_128B        1348 ns         1348 ns       523189 bytes_per_second=113.16M/s items_per_second=741.605k/s
-encrypt_32B_256B        2186 ns         2186 ns       320184 bytes_per_second=125.673M/s items_per_second=457.561k/s
-encrypt_32B_512B        4048 ns         4048 ns       172988 bytes_per_second=128.152M/s items_per_second=247.018k/s
-encrypt_32B_1024B       7613 ns         7613 ns        92006 bytes_per_second=132.291M/s items_per_second=131.361k/s
-encrypt_32B_2048B      14880 ns        14879 ns        47040 bytes_per_second=133.314M/s items_per_second=67.2068k/s
-encrypt_32B_4096B      30435 ns        30434 ns        23025 bytes_per_second=129.353M/s items_per_second=32.8577k/s
-decrypt_32B_64B          874 ns          874 ns       801116 bytes_per_second=104.729M/s items_per_second=1.14392M/s
-decrypt_32B_128B        1377 ns         1377 ns       504551 bytes_per_second=110.805M/s items_per_second=726.172k/s
-decrypt_32B_256B        2249 ns         2249 ns       311649 bytes_per_second=122.129M/s items_per_second=444.657k/s
-decrypt_32B_512B        4107 ns         4107 ns       170027 bytes_per_second=126.314M/s items_per_second=243.475k/s
-decrypt_32B_1024B       7785 ns         7785 ns        89754 bytes_per_second=129.364M/s items_per_second=128.455k/s
-decrypt_32B_2048B      15248 ns        15247 ns        45901 bytes_per_second=130.099M/s items_per_second=65.5857k/s
-decrypt_32B_4096B      30294 ns        30293 ns        23118 bytes_per_second=129.957M/s items_per_second=33.0111k/s
+hash_32B                 525 ns          525 ns      1330691 bytes_per_second=58.1639M/s items_per_second=1.90592M/s
+hash_64B                 871 ns          871 ns       803552 bytes_per_second=70.0582M/s items_per_second=1.14783M/s
+hash_128B               1566 ns         1566 ns       447110 bytes_per_second=77.9753M/s items_per_second=638.773k/s
+hash_256B               2958 ns         2958 ns       236610 bytes_per_second=82.5488M/s items_per_second=338.12k/s
+hash_512B               5739 ns         5739 ns       122003 bytes_per_second=85.087M/s items_per_second=174.258k/s
+hash_1024B             11284 ns        11284 ns        62052 bytes_per_second=86.5455M/s items_per_second=88.6226k/s
+hash_2048B             22400 ns        22400 ns        31255 bytes_per_second=87.193M/s items_per_second=44.6428k/s
+hash_4096B             44622 ns        44620 ns        15694 bytes_per_second=87.5446M/s items_per_second=22.4114k/s
+encrypt_32B_64B          988 ns          988 ns       709709 bytes_per_second=92.7059M/s items_per_second=1012.6k/s
+encrypt_32B_128B        1593 ns         1593 ns       442066 bytes_per_second=95.8083M/s items_per_second=627.889k/s
+encrypt_32B_256B        2550 ns         2550 ns       274432 bytes_per_second=107.709M/s items_per_second=392.155k/s
+encrypt_32B_512B        4663 ns         4663 ns       150130 bytes_per_second=111.253M/s items_per_second=214.444k/s
+encrypt_32B_1024B       8726 ns         8726 ns        80251 bytes_per_second=115.415M/s items_per_second=114.604k/s
+encrypt_32B_2048B      17059 ns        17058 ns        41103 bytes_per_second=116.288M/s items_per_second=58.6233k/s
+encrypt_32B_4096B      33426 ns        33426 ns        20946 bytes_per_second=117.777M/s items_per_second=29.9172k/s
+decrypt_32B_64B         1019 ns         1019 ns       689418 bytes_per_second=89.8509M/s items_per_second=981.412k/s
+decrypt_32B_128B        1621 ns         1621 ns       439731 bytes_per_second=94.1436M/s items_per_second=616.98k/s
+decrypt_32B_256B        2562 ns         2562 ns       273077 bytes_per_second=107.203M/s items_per_second=390.315k/s
+decrypt_32B_512B        4697 ns         4697 ns       148744 bytes_per_second=110.461M/s items_per_second=212.917k/s
+decrypt_32B_1024B       8746 ns         8746 ns        79668 bytes_per_second=115.154M/s items_per_second=114.344k/s
+decrypt_32B_2048B      17081 ns        17080 ns        40973 bytes_per_second=116.141M/s items_per_second=58.5493k/s
+decrypt_32B_4096B      33556 ns        33556 ns        20859 bytes_per_second=117.321M/s items_per_second=29.8013k/s
 ```
 
 ## Usage
