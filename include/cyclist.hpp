@@ -120,7 +120,7 @@ up(uint32_t* const __restrict state,
    const size_t b_len,
    phase_t* const __restrict ph)
 {
-  if (m == mode_t::Keyed) {
+  if constexpr (m == mode_t::Keyed) {
     state[11] ^= static_cast<uint32_t>(color) << 24;
   }
 

@@ -30,33 +30,42 @@ template<const int t, const int v>
 static inline void
 cyclic_shift(uint32_t* const plane)
 {
+  if constexpr (t == 0) {
 #if defined(__clang__)
 #pragma unroll 4
 #elif defined __GNUG__
 #pragma GCC unroll 4
 #endif
-  for (size_t i = 0; i < 4; i++) {
-    plane[i] = std::rotl(plane[i], v);
-  }
-
-  uint32_t shifted[4];
-
-#if defined(__clang__)
-#pragma unroll 4
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    shifted[(i + t) & 3u] = plane[i];
-  }
+    for (size_t i = 0; i < 4; i++) {
+      plane[i] = std::rotl(plane[i], v);
+    }
+  } else if constexpr (t == 1) {
+    const uint32_t lane3 = std::rotl(plane[3], v);
 
 #if defined(__clang__)
-#pragma unroll 4
+#pragma unroll 3
 #elif defined __GNUG__
-#pragma GCC unroll 4
+#pragma GCC unroll 3
 #endif
-  for (size_t i = 0; i < 4; i++) {
-    plane[i] = shifted[i];
+    for (int i = 2; i >= 0; i--) {
+      plane[i + 1] = std::rotl(plane[i], v);
+    }
+
+    plane[0] = lane3;
+  } else if constexpr (t == 2) {
+    plane[0] = std::rotl(plane[0], v);
+    plane[2] = std::rotl(plane[2], v);
+
+    plane[0] ^= plane[2];
+    plane[2] ^= plane[0];
+    plane[0] ^= plane[2];
+
+    plane[1] = std::rotl(plane[1], v);
+    plane[3] = std::rotl(plane[3], v);
+
+    plane[1] ^= plane[3];
+    plane[3] ^= plane[1];
+    plane[1] ^= plane[3];
   }
 }
 
