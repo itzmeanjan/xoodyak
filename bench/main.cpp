@@ -14,16 +14,13 @@ hash(benchmark::State& state, const size_t m_len)
   random_data(msg, m_len);
   memset(digest, 0, xoodyak::DIGEST_LEN);
 
-  size_t itr = 0;
   for (auto _ : state) {
     xoodyak::hash(msg, m_len, digest);
 
     benchmark::DoNotOptimize(digest);
-    benchmark::DoNotOptimize(itr++);
   }
 
-  state.SetBytesProcessed(static_cast<int64_t>(m_len * itr));
-  state.SetItemsProcessed(static_cast<int64_t>(itr));
+  state.SetBytesProcessed(static_cast<int64_t>(m_len * state.iterations()));
 
   // release memory resources
   free(msg);
@@ -51,13 +48,11 @@ encrypt(benchmark::State& state, const size_t dt_len, const size_t ct_len)
   random_data(data, dt_len);
   random_data(text, ct_len);
 
-  size_t itr = 0;
   for (auto _ : state) {
     xoodyak::encrypt(key, nonce, data, dt_len, text, enc, ct_len, tag);
 
     benchmark::DoNotOptimize(enc);
     benchmark::DoNotOptimize(tag);
-    benchmark::DoNotOptimize(itr++);
   }
 
   bool f = xoodyak::decrypt(key, nonce, tag, data, dt_len, enc, dec, ct_len);
@@ -67,8 +62,10 @@ encrypt(benchmark::State& state, const size_t dt_len, const size_t ct_len)
     assert((text[i] ^ dec[i]) == 0u);
   }
 
-  state.SetBytesProcessed(static_cast<int64_t>((dt_len + ct_len) * itr));
-  state.SetItemsProcessed(static_cast<int64_t>(itr));
+  const size_t per_itr_data = dt_len + ct_len;
+  const size_t total_data = per_itr_data * state.iterations();
+
+  state.SetBytesProcessed(static_cast<int64_t>(total_data));
 
   // release memory resources
   free(key);
@@ -103,21 +100,21 @@ decrypt(benchmark::State& state, const size_t dt_len, const size_t ct_len)
 
   xoodyak::encrypt(key, nonce, data, dt_len, text, enc, ct_len, tag);
 
-  size_t itr = 0;
   for (auto _ : state) {
     bool f = xoodyak::decrypt(key, nonce, tag, data, dt_len, enc, dec, ct_len);
 
     benchmark::DoNotOptimize(f);
     benchmark::DoNotOptimize(dec);
-    benchmark::DoNotOptimize(itr++);
   }
 
   for (size_t i = 0; i < ct_len; i++) {
     assert((text[i] ^ dec[i]) == 0u);
   }
 
-  state.SetBytesProcessed(static_cast<int64_t>((dt_len + ct_len) * itr));
-  state.SetItemsProcessed(static_cast<int64_t>(itr));
+  const size_t per_itr_data = dt_len + ct_len;
+  const size_t total_data = per_itr_data * state.iterations();
+
+  state.SetBytesProcessed(static_cast<int64_t>(total_data));
 
   // release memory resources
   free(key);
