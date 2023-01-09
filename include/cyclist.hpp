@@ -2,8 +2,6 @@
 #include "utils.hpp"
 #include "xoodoo.hpp"
 #include <algorithm>
-#include <cstring>
-#include <type_traits>
 
 // Cyclist mode of operation, used in Xoodyak cryptographic suite !
 namespace cyclist {
