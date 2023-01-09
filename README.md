@@ -118,16 +118,14 @@ For testing functional correctness of Xoodyak cryptographic suite implementation
   - Same as above point, just that before attempting decryption, to check that claimed security properties are working as expected in this implementation, mutation of secret key/ nonce/ tag/ encrypted data/ associated data ( even a single bit flip is sufficient ) is performed, while asserting that verified decryption attempt must fail ( read boolean verification flag must not be truth value ).
 - Given Known Answer Tests as submitted with Xoodyak package in NIST LWC call, this implementation computed results are asserted against KATs, to ensure correctness & conformance to specified standard. Both Xoodyak Hash & AEAD are checked.
 
-For executing first kind of test, issue
-
 ```bash
-make          # uses C++ API of Xoodyak
-```
+# Just issue 
+make            # test_aead + test_kat
 
-And if interested in testing against KAT, issue
+# Or you may
 
-```bash
-make test_kat # uses Python API of Xoodyak
+make test_aead  # tests functional correctness of AEAD
+make test_kat   # tests correctness and conformance with standard
 ```
 
 ## Benchmarking
@@ -141,80 +139,159 @@ For benchmarking following implementations of Xoodyak cryptographic suite, on CP
 issue
 
 ```bash
-make benchmark # must have `google-benchmark`
+make benchmark # must have `google-benchmark` library and header
 ```
 
-### On ARM Cortex A72
+### On Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz ( compiled with GCC )
 
 ```bash
-2022-05-05T08:56:57+05:30
+2023-01-09T16:46:47+00:00
 Running ./bench/a.out
-Run on (4 X 1800 MHz CPU s)
-Load Average: 1.45, 0.66, 0.63
-----------------------------------------------------------------------------
-Benchmark                  Time             CPU   Iterations UserCounters...
-----------------------------------------------------------------------------
-hash_32B                 803 ns          801 ns       869238 bytes_per_second=38.0901M/s items_per_second=1.24814M/s
-hash_64B                1333 ns         1329 ns       526557 bytes_per_second=45.9377M/s items_per_second=752.643k/s
-hash_128B               2369 ns         2364 ns       295114 bytes_per_second=51.6394M/s items_per_second=423.03k/s
-hash_256B               4734 ns         4534 ns       156153 bytes_per_second=53.8447M/s items_per_second=220.548k/s
-hash_512B               8583 ns         8577 ns        79767 bytes_per_second=56.9309M/s items_per_second=116.594k/s
-hash_1024B             16898 ns        16888 ns        41411 bytes_per_second=57.8258M/s items_per_second=59.2136k/s
-hash_2048B             33518 ns        33496 ns        20877 bytes_per_second=58.3092M/s items_per_second=29.8543k/s
-hash_4096B             66741 ns        66683 ns        10472 bytes_per_second=58.5795M/s items_per_second=14.9964k/s
-encrypt_32B_64B         1447 ns         1446 ns       483464 bytes_per_second=63.3331M/s items_per_second=691.766k/s
-encrypt_32B_128B        2335 ns         2333 ns       299398 bytes_per_second=65.4115M/s items_per_second=428.681k/s
-encrypt_32B_256B        4259 ns         3896 ns       183474 bytes_per_second=70.4892M/s items_per_second=256.643k/s
-encrypt_32B_512B        7170 ns         7094 ns        97952 bytes_per_second=73.1355M/s items_per_second=140.971k/s
-encrypt_32B_1024B      13321 ns        13263 ns        52898 bytes_per_second=75.932M/s items_per_second=75.3982k/s
-encrypt_32B_2048B      26026 ns        25925 ns        27039 bytes_per_second=76.5146M/s items_per_second=38.5728k/s
-encrypt_32B_4096B      50953 ns        50901 ns        13620 bytes_per_second=77.3411M/s items_per_second=19.6458k/s
-decrypt_32B_64B         1497 ns         1480 ns       476973 bytes_per_second=61.8614M/s items_per_second=675.692k/s
-decrypt_32B_128B        2385 ns         2369 ns       293295 bytes_per_second=64.4053M/s items_per_second=422.087k/s
-decrypt_32B_256B        3835 ns         3833 ns       182543 bytes_per_second=71.655M/s items_per_second=260.888k/s
-decrypt_32B_512B        7053 ns         7052 ns        98745 bytes_per_second=73.5724M/s items_per_second=141.813k/s
-decrypt_32B_1024B      13242 ns        13235 ns        52683 bytes_per_second=76.0917M/s items_per_second=75.5568k/s
-decrypt_32B_2048B      25892 ns        25874 ns        27030 bytes_per_second=76.6648M/s items_per_second=38.6485k/s
-decrypt_32B_4096B      50977 ns        50943 ns        13681 bytes_per_second=77.278M/s items_per_second=19.6298k/s
-```
-
-### On Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz
-
-```bash
-2022-05-05T03:33:03+00:00
-Running ./bench/a.out
-Run on (4 X 2300 MHz CPU s)
+Run on (128 X 1343.45 MHz CPU s)
 CPU Caches:
-  L1 Data 32 KiB (x2)
-  L1 Instruction 32 KiB (x2)
-  L2 Unified 256 KiB (x2)
-  L3 Unified 46080 KiB (x1)
-Load Average: 0.14, 0.06, 0.02
-----------------------------------------------------------------------------
-Benchmark                  Time             CPU   Iterations UserCounters...
-----------------------------------------------------------------------------
-hash_32B                 525 ns          525 ns      1330691 bytes_per_second=58.1639M/s items_per_second=1.90592M/s
-hash_64B                 871 ns          871 ns       803552 bytes_per_second=70.0582M/s items_per_second=1.14783M/s
-hash_128B               1566 ns         1566 ns       447110 bytes_per_second=77.9753M/s items_per_second=638.773k/s
-hash_256B               2958 ns         2958 ns       236610 bytes_per_second=82.5488M/s items_per_second=338.12k/s
-hash_512B               5739 ns         5739 ns       122003 bytes_per_second=85.087M/s items_per_second=174.258k/s
-hash_1024B             11284 ns        11284 ns        62052 bytes_per_second=86.5455M/s items_per_second=88.6226k/s
-hash_2048B             22400 ns        22400 ns        31255 bytes_per_second=87.193M/s items_per_second=44.6428k/s
-hash_4096B             44622 ns        44620 ns        15694 bytes_per_second=87.5446M/s items_per_second=22.4114k/s
-encrypt_32B_64B          988 ns          988 ns       709709 bytes_per_second=92.7059M/s items_per_second=1012.6k/s
-encrypt_32B_128B        1593 ns         1593 ns       442066 bytes_per_second=95.8083M/s items_per_second=627.889k/s
-encrypt_32B_256B        2550 ns         2550 ns       274432 bytes_per_second=107.709M/s items_per_second=392.155k/s
-encrypt_32B_512B        4663 ns         4663 ns       150130 bytes_per_second=111.253M/s items_per_second=214.444k/s
-encrypt_32B_1024B       8726 ns         8726 ns        80251 bytes_per_second=115.415M/s items_per_second=114.604k/s
-encrypt_32B_2048B      17059 ns        17058 ns        41103 bytes_per_second=116.288M/s items_per_second=58.6233k/s
-encrypt_32B_4096B      33426 ns        33426 ns        20946 bytes_per_second=117.777M/s items_per_second=29.9172k/s
-decrypt_32B_64B         1019 ns         1019 ns       689418 bytes_per_second=89.8509M/s items_per_second=981.412k/s
-decrypt_32B_128B        1621 ns         1621 ns       439731 bytes_per_second=94.1436M/s items_per_second=616.98k/s
-decrypt_32B_256B        2562 ns         2562 ns       273077 bytes_per_second=107.203M/s items_per_second=390.315k/s
-decrypt_32B_512B        4697 ns         4697 ns       148744 bytes_per_second=110.461M/s items_per_second=212.917k/s
-decrypt_32B_1024B       8746 ns         8746 ns        79668 bytes_per_second=115.154M/s items_per_second=114.344k/s
-decrypt_32B_2048B      17081 ns        17080 ns        40973 bytes_per_second=116.141M/s items_per_second=58.5493k/s
-decrypt_32B_4096B      33556 ns        33556 ns        20859 bytes_per_second=117.321M/s items_per_second=29.8013k/s
+  L1 Data 48 KiB (x64)
+  L1 Instruction 32 KiB (x64)
+  L2 Unified 1280 KiB (x64)
+  L3 Unified 55296 KiB (x2)
+Load Average: 0.30, 0.10, 0.03
+-----------------------------------------------------------------------------------------
+Benchmark                               Time             CPU   Iterations UserCounters...
+-----------------------------------------------------------------------------------------
+bench_xoodyak::hash/64                792 ns          792 ns       884350 bytes_per_second=77.1079M/s
+bench_xoodyak::hash/128              1408 ns         1408 ns       497356 bytes_per_second=86.6982M/s
+bench_xoodyak::hash/256              2644 ns         2644 ns       264858 bytes_per_second=92.3503M/s
+bench_xoodyak::hash/512              5113 ns         5113 ns       136861 bytes_per_second=95.4947M/s
+bench_xoodyak::hash/1024            10044 ns        10044 ns        69715 bytes_per_second=97.2304M/s
+bench_xoodyak::hash/2048            19912 ns        19913 ns        35153 bytes_per_second=98.0851M/s
+bench_xoodyak::hash/4096            39644 ns        39645 ns        17660 bytes_per_second=98.5307M/s
+bench_xoodyak::encrypt/32/64          605 ns          605 ns      1156776 bytes_per_second=151.371M/s
+bench_xoodyak::decrypt/32/64          606 ns          606 ns      1154334 bytes_per_second=150.965M/s
+bench_xoodyak::encrypt/32/128         953 ns          953 ns       733726 bytes_per_second=160.148M/s
+bench_xoodyak::decrypt/32/128         958 ns          958 ns       729611 bytes_per_second=159.307M/s
+bench_xoodyak::encrypt/32/256        1551 ns         1551 ns       451123 bytes_per_second=177.068M/s
+bench_xoodyak::decrypt/32/256        1556 ns         1556 ns       451385 bytes_per_second=176.484M/s
+bench_xoodyak::encrypt/32/512        2823 ns         2823 ns       247997 bytes_per_second=183.789M/s
+bench_xoodyak::decrypt/32/512        2837 ns         2837 ns       246746 bytes_per_second=182.886M/s
+bench_xoodyak::encrypt/32/1024       5252 ns         5252 ns       133334 bytes_per_second=191.759M/s
+bench_xoodyak::decrypt/32/1024       5298 ns         5297 ns       131890 bytes_per_second=190.109M/s
+bench_xoodyak::encrypt/32/2048      10232 ns        10232 ns        68414 bytes_per_second=193.864M/s
+bench_xoodyak::decrypt/32/2048      10326 ns        10326 ns        67752 bytes_per_second=192.103M/s
+bench_xoodyak::encrypt/32/4096      20099 ns        20099 ns        34825 bytes_per_second=195.871M/s
+bench_xoodyak::decrypt/32/4096      20251 ns        20251 ns        34560 bytes_per_second=194.395M/s
+```
+
+### On Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz ( compiled with Clang )
+
+```bash
+2023-01-09T16:47:33+00:00
+Running ./bench/a.out
+Run on (128 X 2722.43 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x64)
+  L1 Instruction 32 KiB (x64)
+  L2 Unified 1280 KiB (x64)
+  L3 Unified 55296 KiB (x2)
+Load Average: 0.38, 0.16, 0.06
+-----------------------------------------------------------------------------------------
+Benchmark                               Time             CPU   Iterations UserCounters...
+-----------------------------------------------------------------------------------------
+bench_xoodyak::hash/64                434 ns          434 ns      1613281 bytes_per_second=140.674M/s
+bench_xoodyak::hash/128               781 ns          781 ns       896393 bytes_per_second=156.346M/s
+bench_xoodyak::hash/256              1474 ns         1474 ns       474787 bytes_per_second=165.625M/s
+bench_xoodyak::hash/512              2861 ns         2861 ns       244530 bytes_per_second=170.677M/s
+bench_xoodyak::hash/1024             5636 ns         5637 ns       124155 bytes_per_second=173.255M/s
+bench_xoodyak::hash/2048            11186 ns        11186 ns        62585 bytes_per_second=174.608M/s
+bench_xoodyak::hash/4096            22287 ns        22286 ns        31399 bytes_per_second=175.275M/s
+bench_xoodyak::encrypt/32/64          468 ns          468 ns      1494075 bytes_per_second=195.42M/s
+bench_xoodyak::decrypt/32/64          478 ns          478 ns      1462550 bytes_per_second=191.367M/s
+bench_xoodyak::encrypt/32/128         774 ns          774 ns       905020 bytes_per_second=197.239M/s
+bench_xoodyak::decrypt/32/128         800 ns          800 ns       875634 bytes_per_second=190.82M/s
+bench_xoodyak::encrypt/32/256        1283 ns         1283 ns       545553 bytes_per_second=214.09M/s
+bench_xoodyak::decrypt/32/256        1322 ns         1322 ns       529471 bytes_per_second=207.727M/s
+bench_xoodyak::encrypt/32/512        2400 ns         2400 ns       291649 bytes_per_second=216.161M/s
+bench_xoodyak::decrypt/32/512        2482 ns         2482 ns       281992 bytes_per_second=209.011M/s
+bench_xoodyak::encrypt/32/1024       4532 ns         4532 ns       154451 bytes_per_second=222.221M/s
+bench_xoodyak::decrypt/32/1024       4680 ns         4680 ns       149556 bytes_per_second=215.182M/s
+bench_xoodyak::encrypt/32/2048       8885 ns         8885 ns        78785 bytes_per_second=223.248M/s
+bench_xoodyak::decrypt/32/2048       9211 ns         9211 ns        76008 bytes_per_second=215.345M/s
+bench_xoodyak::encrypt/32/4096      17470 ns        17470 ns        40061 bytes_per_second=225.346M/s
+bench_xoodyak::decrypt/32/4096      18108 ns        18108 ns        38657 bytes_per_second=217.407M/s
+```
+
+### On ARM Neoverse-V1 aka AWS Graviton3 ( compiled with GCC )
+
+```bash
+2023-01-09T16:54:26+00:00
+Running ./bench/a.out
+Run on (64 X 2100 MHz CPU s)
+CPU Caches:
+  L1 Data 64 KiB (x64)
+  L1 Instruction 64 KiB (x64)
+  L2 Unified 1024 KiB (x64)
+  L3 Unified 32768 KiB (x1)
+Load Average: 0.15, 0.07, 0.02
+-----------------------------------------------------------------------------------------
+Benchmark                               Time             CPU   Iterations UserCounters...
+-----------------------------------------------------------------------------------------
+bench_xoodyak::hash/64                579 ns          579 ns      1208366 bytes_per_second=105.483M/s
+bench_xoodyak::hash/128              1046 ns         1046 ns       668895 bytes_per_second=116.663M/s
+bench_xoodyak::hash/256              1979 ns         1979 ns       353725 bytes_per_second=123.366M/s
+bench_xoodyak::hash/512              3845 ns         3845 ns       182039 bytes_per_second=126.983M/s
+bench_xoodyak::hash/1024             7573 ns         7573 ns        92427 bytes_per_second=128.951M/s
+bench_xoodyak::hash/2048            15036 ns        15035 ns        46556 bytes_per_second=129.901M/s
+bench_xoodyak::hash/4096            29927 ns        29927 ns        23391 bytes_per_second=130.527M/s
+bench_xoodyak::encrypt/32/64          598 ns          598 ns      1169735 bytes_per_second=153.043M/s
+bench_xoodyak::decrypt/32/64          611 ns          611 ns      1147721 bytes_per_second=149.921M/s
+bench_xoodyak::encrypt/32/128         977 ns          977 ns       715356 bytes_per_second=156.106M/s
+bench_xoodyak::decrypt/32/128         995 ns          995 ns       704696 bytes_per_second=153.341M/s
+bench_xoodyak::encrypt/32/256        1613 ns         1613 ns       434163 bytes_per_second=170.267M/s
+bench_xoodyak::decrypt/32/256        1633 ns         1633 ns       427684 bytes_per_second=168.2M/s
+bench_xoodyak::encrypt/32/512        2993 ns         2993 ns       233587 bytes_per_second=173.316M/s
+bench_xoodyak::decrypt/32/512        3024 ns         3023 ns       232218 bytes_per_second=171.591M/s
+bench_xoodyak::encrypt/32/1024       5624 ns         5624 ns       124487 bytes_per_second=179.059M/s
+bench_xoodyak::decrypt/32/1024       5667 ns         5667 ns       123696 bytes_per_second=177.713M/s
+bench_xoodyak::encrypt/32/2048      11010 ns        11010 ns        63574 bytes_per_second=180.174M/s
+bench_xoodyak::decrypt/32/2048      11050 ns        11050 ns        63354 bytes_per_second=179.516M/s
+bench_xoodyak::encrypt/32/4096      21658 ns        21657 ns        32322 bytes_per_second=181.781M/s
+bench_xoodyak::decrypt/32/4096      21701 ns        21700 ns        32257 bytes_per_second=181.42M/s
+```
+
+### On ARM Neoverse-V1 aka AWS Graviton3 ( compiled with Clang )
+
+```bash
+2023-01-09T16:55:18+00:00
+Running ./bench/a.out
+Run on (64 X 2100 MHz CPU s)
+CPU Caches:
+  L1 Data 64 KiB (x64)
+  L1 Instruction 64 KiB (x64)
+  L2 Unified 1024 KiB (x64)
+  L3 Unified 32768 KiB (x1)
+Load Average: 0.19, 0.10, 0.04
+-----------------------------------------------------------------------------------------
+Benchmark                               Time             CPU   Iterations UserCounters...
+-----------------------------------------------------------------------------------------
+bench_xoodyak::hash/64                445 ns          445 ns      1572726 bytes_per_second=137.204M/s
+bench_xoodyak::hash/128               806 ns          806 ns       868634 bytes_per_second=151.458M/s
+bench_xoodyak::hash/256              1525 ns         1525 ns       459750 bytes_per_second=160.068M/s
+bench_xoodyak::hash/512              2958 ns         2957 ns       236887 bytes_per_second=165.103M/s
+bench_xoodyak::hash/1024             5819 ns         5818 ns       120339 bytes_per_second=167.839M/s
+bench_xoodyak::hash/2048            11543 ns        11543 ns        60683 bytes_per_second=169.208M/s
+bench_xoodyak::hash/4096            23030 ns        23029 ns        30406 bytes_per_second=169.623M/s
+bench_xoodyak::encrypt/32/64          467 ns          467 ns      1497982 bytes_per_second=195.933M/s
+bench_xoodyak::decrypt/32/64          475 ns          475 ns      1473104 bytes_per_second=192.617M/s
+bench_xoodyak::encrypt/32/128         756 ns          756 ns       925961 bytes_per_second=201.88M/s
+bench_xoodyak::decrypt/32/128         767 ns          767 ns       913262 bytes_per_second=198.973M/s
+bench_xoodyak::encrypt/32/256        1240 ns         1240 ns       564311 bytes_per_second=221.46M/s
+bench_xoodyak::decrypt/32/256        1251 ns         1251 ns       559039 bytes_per_second=219.576M/s
+bench_xoodyak::encrypt/32/512        2270 ns         2269 ns       308416 bytes_per_second=228.599M/s
+bench_xoodyak::decrypt/32/512        2301 ns         2301 ns       304218 bytes_per_second=225.483M/s
+bench_xoodyak::encrypt/32/1024       4285 ns         4285 ns       163224 bytes_per_second=235.031M/s
+bench_xoodyak::decrypt/32/1024       4333 ns         4333 ns       161467 bytes_per_second=232.445M/s
+bench_xoodyak::encrypt/32/2048       8339 ns         8339 ns        83993 bytes_per_second=237.882M/s
+bench_xoodyak::decrypt/32/2048       8460 ns         8460 ns        82630 bytes_per_second=234.482M/s
+bench_xoodyak::encrypt/32/4096      16439 ns        16438 ns        42587 bytes_per_second=239.49M/s
+bench_xoodyak::decrypt/32/4096      16637 ns        16637 ns        42090 bytes_per_second=236.63M/s
 ```
 
 ## Usage
