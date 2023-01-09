@@ -3,6 +3,7 @@
 #include "xoodoo.hpp"
 #include <algorithm>
 #include <cstring>
+#include <type_traits>
 
 // Cyclist mode of operation, used in Xoodyak cryptographic suite !
 namespace cyclist {
@@ -86,22 +87,28 @@ down(uint32_t* const __restrict state,
      const size_t b_len,
      phase_t* const __restrict ph)
 {
-  const size_t full_lane_cnt = b_len >> 2;
-  const size_t part_lane_byt = b_len & 3ul;
+  const size_t rm_bytes = b_len & 3ul;
+  const size_t till = b_len - rm_bytes;
 
-  for (size_t i = 0; i < full_lane_cnt; i++) {
-    const uint32_t lane = from_le_bytes(blk + (i << 2));
-    state[i] ^= lane;
+  size_t off = 0ul;
+  size_t idx = 0ul;
+  while (off < till) {
+    const size_t lane = from_le_bytes(blk + off);
+    state[idx] ^= lane;
+
+    off += 4ul;
+    idx += 1ul;
   }
 
-  const size_t b_off = full_lane_cnt << 2;
-  uint32_t lane = 0x01u << (part_lane_byt << 3);
+  uint32_t lane = 0u;
+  std::memcpy(&lane, blk + off, rm_bytes);
 
-  for (size_t i = 0; i < part_lane_byt; i++) {
-    lane |= static_cast<uint32_t>(blk[b_off + i]) << (i << 3);
+  if constexpr (std::endian::native == std::endian::big) {
+    lane = bswap32(lane);
   }
 
-  state[full_lane_cnt] ^= lane;
+  lane |= 0x01u << (rm_bytes * 8);
+  state[idx] ^= lane;
 
   state[11] ^= static_cast<uint32_t>(color) << 24;
   ph[0] = phase_t::Down;
@@ -127,18 +134,23 @@ up(uint32_t* const __restrict state,
 
   xoodoo::permute(state);
 
-  const size_t full_lane_cnt = b_len >> 2;
-  const size_t part_lane_byt = b_len & 3ul;
+  const size_t rm_bytes = b_len & 3ul;
+  const size_t till = b_len - rm_bytes;
 
-  for (size_t i = 0; i < full_lane_cnt; i++) {
-    to_le_bytes(state[i], blk + (i << 2));
+  size_t off = 0ul;
+  size_t idx = 0ul;
+  while (off < till) {
+    to_le_bytes(state[idx], blk + off);
+
+    off += 4ul;
+    idx += 1ul;
   }
 
-  const size_t b_off = full_lane_cnt << 2;
-  const uint32_t lane = state[full_lane_cnt];
-
-  for (size_t i = 0; i < part_lane_byt; i++) {
-    blk[b_off + i] = static_cast<uint8_t>(lane >> (i << 3));
+  if constexpr (std::endian::native == std::endian::big) {
+    const uint32_t swapped = bswap32(state[idx]);
+    std::memcpy(blk + off, &swapped, rm_bytes);
+  } else {
+    std::memcpy(blk + off, &state[idx], rm_bytes);
   }
 
   ph[0] = phase_t::Up;
