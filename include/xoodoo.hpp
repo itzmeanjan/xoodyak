@@ -1,8 +1,7 @@
 #pragma once
 #include <bit>
+#include <cstddef>
 #include <cstdint>
-
-using size_t = std::size_t;
 
 // Xoodoo permutation which empowers Xoodyak cryptographic suite !
 namespace xoodoo {
@@ -18,6 +17,13 @@ constexpr uint32_t RC[ROUNDS] = { 0x00000058, 0x00000038, 0x000003c0,
                                   0x00000060, 0x0000002c, 0x00000380,
                                   0x000000f0, 0x000001a0, 0x00000012 };
 
+// Compile-time check to ensure that cyclic lane rotation factor ∈ {0, 1, 2}
+consteval bool
+check_lane_shift_factor(const int t)
+{
+  return (t == 0) || (t == 1) || (t == 2);
+}
+
 // Given a plane of Xoodoo permutation state ( each plane has 4 lanes, each lane
 // of 32 -bit ), this function cyclically shifts the plane such that bit at
 // position (x, z) moves to (x+t, z+v)
@@ -29,22 +35,45 @@ constexpr uint32_t RC[ROUNDS] = { 0x00000058, 0x00000038, 0x000003c0,
 template<const int t, const int v>
 static inline void
 cyclic_shift(uint32_t* const plane)
+  requires((check_lane_shift_factor(t)))
 {
   if constexpr (t == 0) {
-#if defined(__clang__)
-#pragma unroll 4
+    // force compile-time branch evaluation
+    static_assert(t == 0, "t must be = 0");
+
+#if defined __clang__
+    // Following
+    // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+    // Following
+    // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
     for (size_t i = 0; i < 4; i++) {
       plane[i] = std::rotl(plane[i], v);
     }
   } else if constexpr (t == 1) {
+    // force compile-time branch evaluation
+    static_assert(t == 1, "t must be = 1");
+
     const uint32_t lane3 = std::rotl(plane[3], v);
 
-#if defined(__clang__)
-#pragma unroll 3
+#if defined __clang__
+    // Following
+    // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+    // Following
+    // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 3
 #endif
     for (int i = 2; i >= 0; i--) {
@@ -53,6 +82,9 @@ cyclic_shift(uint32_t* const plane)
 
     plane[0] = lane3;
   } else if constexpr (t == 2) {
+    // force compile-time branch evaluation
+    static_assert(t == 2, "t must be = 2");
+
     plane[0] = std::rotl(plane[0], v);
     plane[2] = std::rotl(plane[2], v);
 
