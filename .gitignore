@@ -6,3 +6,7 @@
 
 __pycache__
 .pytest_cache
+
+# For Clangd
+compile_commands.json
+.cache
