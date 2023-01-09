@@ -1,6 +1,7 @@
 #pragma once
 #include "xoodyak.hpp"
 #include <benchmark/benchmark.h>
+#include <cassert>
 #include <cstring>
 
 // Benchmark Xoodyak Authenticated Encryption with Associated Data ( AEAD )
@@ -23,7 +24,9 @@ hash(benchmark::State& state)
   for (auto _ : state) {
     xoodyak::hash(msg, m_len, digest);
 
+    benchmark::DoNotOptimize(msg);
     benchmark::DoNotOptimize(digest);
+    benchmark::ClobberMemory();
   }
 
   state.SetBytesProcessed(static_cast<int64_t>(m_len * state.iterations()));
@@ -59,8 +62,13 @@ encrypt(benchmark::State& state)
   for (auto _ : state) {
     xoodyak::encrypt(key, nonce, data, dt_len, text, enc, ct_len, tag);
 
+    benchmark::DoNotOptimize(key);
+    benchmark::DoNotOptimize(nonce);
+    benchmark::DoNotOptimize(data);
+    benchmark::DoNotOptimize(text);
     benchmark::DoNotOptimize(enc);
     benchmark::DoNotOptimize(tag);
+    benchmark::ClobberMemory();
   }
 
   bool f = xoodyak::decrypt(key, nonce, tag, data, dt_len, enc, dec, ct_len);
@@ -112,9 +120,16 @@ decrypt(benchmark::State& state)
 
   for (auto _ : state) {
     bool f = xoodyak::decrypt(key, nonce, tag, data, dt_len, enc, dec, ct_len);
+    assert(f);
 
-    benchmark::DoNotOptimize(f);
+    benchmark::DoNotOptimize(key);
+    benchmark::DoNotOptimize(nonce);
+    benchmark::DoNotOptimize(tag);
+    benchmark::DoNotOptimize(data);
+    benchmark::DoNotOptimize(enc);
     benchmark::DoNotOptimize(dec);
+    benchmark::DoNotOptimize(f);
+    benchmark::ClobberMemory();
   }
 
   for (size_t i = 0; i < ct_len; i++) {
