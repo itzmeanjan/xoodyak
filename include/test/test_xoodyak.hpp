@@ -8,7 +8,7 @@ namespace test_xoodyak {
 
 // Choose which one to modify ( just a single bit flip ), before attempting
 // decryption, to show that Xoodyak AEAD provides promised security properties
-enum mutate_t
+enum class mutate_t : uint8_t
 {
   key,   // secret key
   nonce, // public message nonce
@@ -18,10 +18,27 @@ enum mutate_t
   none   // don't modify anything !
 };
 
+// Given blen -many bytes, this routine returns a truth value denoting whether
+// all the bytes are set to zero. If atleast one of the bytes are not set, it'll
+// return false.
+inline bool
+is_zeros(const uint8_t* const bytes, const size_t blen)
+{
+  bool flg = false;
+  for (size_t i = 0; i < blen; i++) {
+    flg |= bytes[i] != 0;
+  }
+
+  return !flg;
+}
+
 // Test Xoodyak AEAD Implementation by executing encrypt -> decrypt ->
 // compare, on randomly generated input bytes, while also mutating ( a single
 // bit flip ) decrypt routine input set to show that AEAD scheme works as
 // expected
+//
+// This routine also checks whether unverified plain text is released or not, in
+// case of authentication failure. Unverified plain text shouldn't be released !
 inline void
 aead(const size_t dt_len, const size_t ct_len, const mutate_t m)
 {
@@ -76,16 +93,20 @@ aead(const size_t dt_len, const size_t ct_len, const mutate_t m)
   switch (m) {
     case mutate_t::key:
       assert(!f);
+      assert(is_zeros(dec, ct_len));
       break;
     case mutate_t::nonce:
       assert(!f);
+      assert(is_zeros(dec, ct_len));
       break;
     case mutate_t::tag:
       assert(!f);
+      assert(is_zeros(dec, ct_len));
       break;
     case mutate_t::data:
       if (dt_len > 0) {
         assert(!f);
+        assert(is_zeros(dec, ct_len));
       } else {
         assert(f);
 
@@ -99,6 +120,7 @@ aead(const size_t dt_len, const size_t ct_len, const mutate_t m)
     case mutate_t::enc:
       if (ct_len > 0) {
         assert(!f);
+        assert(is_zeros(dec, ct_len));
       } else {
         assert(f);
 

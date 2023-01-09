@@ -11,12 +11,12 @@ main()
 
   for (size_t i = min_ct_len; i < max_ct_len; i++) {
     for (size_t j = min_dt_len; j < max_dt_len; j++) {
-      test_xoodyak::aead(j, i, test_xoodyak::key);
-      test_xoodyak::aead(j, i, test_xoodyak::nonce);
-      test_xoodyak::aead(j, i, test_xoodyak::tag);
-      test_xoodyak::aead(j, i, test_xoodyak::data);
-      test_xoodyak::aead(j, i, test_xoodyak::enc);
-      test_xoodyak::aead(j, i, test_xoodyak::none);
+      test_xoodyak::aead(j, i, test_xoodyak::mutate_t::key);
+      test_xoodyak::aead(j, i, test_xoodyak::mutate_t::nonce);
+      test_xoodyak::aead(j, i, test_xoodyak::mutate_t::tag);
+      test_xoodyak::aead(j, i, test_xoodyak::mutate_t::data);
+      test_xoodyak::aead(j, i, test_xoodyak::mutate_t::enc);
+      test_xoodyak::aead(j, i, test_xoodyak::mutate_t::none);
     }
   }
 
