@@ -5,7 +5,7 @@ IFLAGS = -I ./include
 
 all: test_aead test_kat
 
-test/a.out: test/main.cpp include/*.hpp
+test/a.out: test/main.cpp include/*.hpp include/test/*.hpp
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) $(IFLAGS) $< -o $@
 
 test_aead: test/a.out
@@ -23,7 +23,7 @@ format:
 lib:
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) $(IFLAGS) -fPIC --shared wrapper/xoodyak.cpp -o wrapper/libxoodyak.so
 
-bench/a.out: bench/main.cpp include/*.hpp
+bench/a.out: bench/main.cpp include/*.hpp include/bench/*.hpp
 	# make sure you've google-benchmark globally installed;
 	# see https://github.com/google/benchmark/tree/60b16f1#installation
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) $(IFLAGS) $< -lbenchmark -o $@
