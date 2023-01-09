@@ -25,7 +25,7 @@ bswap32(const uint32_t a)
 
 // Given four little endian bytes, this function interprets it as a 32 -bit
 // unsigned integer
-inline uint32_t
+static inline uint32_t
 from_le_bytes(const uint8_t* const bytes)
 {
   uint32_t word;
@@ -40,7 +40,7 @@ from_le_bytes(const uint8_t* const bytes)
 
 // Given a 32 -bit unsigned integer, this function interprets it as a little
 // endian byte array
-inline void
+static inline void
 to_le_bytes(const uint32_t word, uint8_t* const bytes)
 {
   if constexpr (std::endian::native == std::endian::big) {

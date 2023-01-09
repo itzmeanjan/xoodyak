@@ -27,7 +27,7 @@ hash(const uint8_t* const __restrict msg, // N -bytes input message to be hashed
 )
 {
   cyclist::phase_t ph = cyclist::phase_t::Up;
-  uint32_t state[12] = { 0u };
+  uint32_t state[12]{};
 
   cyclist::absorb<cyclist::mode_t::Hash>(state, msg, m_len, &ph);
   cyclist::squeeze<cyclist::mode_t::Hash>(state, out, DIGEST_LEN, &ph);
@@ -50,7 +50,7 @@ encrypt(const uint8_t* const __restrict key,   // 128 -bit secret key
 )
 {
   cyclist::phase_t ph = cyclist::phase_t::Up;
-  uint32_t state[12] = { 0u };
+  uint32_t state[12]{};
 
   cyclist::absorb_key(state, key, nonce, &ph);
   cyclist::absorb<cyclist::mode_t::Keyed>(state, data, dt_len, &ph);
@@ -77,8 +77,8 @@ decrypt(const uint8_t* const __restrict key,   // 128 -bit secret key
 )
 {
   cyclist::phase_t ph = cyclist::phase_t::Up;
-  uint32_t state[12] = { 0u };
-  uint8_t tag_[16] = { 0u };
+  uint32_t state[12]{};
+  uint8_t tag_[16]{};
 
   cyclist::absorb_key(state, key, nonce, &ph);
   cyclist::absorb<cyclist::mode_t::Keyed>(state, data, dt_len, &ph);
@@ -88,14 +88,24 @@ decrypt(const uint8_t* const __restrict key,   // 128 -bit secret key
   bool f = false;
 
 #if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
-#pragma GCC unroll 16
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
 #pragma GCC ivdep
+#pragma GCC unroll 16
 #endif
   for (size_t i = 0; i < 16; i++) {
     f |= static_cast<bool>(tag[i] ^ tag_[i]);
   }
 
+  // don't release unverified plain text !
+  std::memset(text, 0, f * ct_len);
   return !f;
 }
 
