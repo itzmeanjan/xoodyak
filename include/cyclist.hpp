@@ -91,7 +91,7 @@ down(uint32_t* const __restrict state,
   size_t off = 0ul;
   size_t idx = 0ul;
   while (off < till) {
-    const size_t lane = from_le_bytes(blk + off);
+    const size_t lane = xoodyak_utils::from_le_bytes(blk + off);
     state[idx] ^= lane;
 
     off += 4ul;
@@ -102,7 +102,7 @@ down(uint32_t* const __restrict state,
   std::memcpy(&lane, blk + off, rm_bytes);
 
   if constexpr (std::endian::native == std::endian::big) {
-    lane = bswap32(lane);
+    lane = xoodyak_utils::bswap32(lane);
   }
 
   lane |= 0x01u << (rm_bytes * 8);
@@ -138,14 +138,14 @@ up(uint32_t* const __restrict state,
   size_t off = 0ul;
   size_t idx = 0ul;
   while (off < till) {
-    to_le_bytes(state[idx], blk + off);
+    xoodyak_utils::to_le_bytes(state[idx], blk + off);
 
     off += 4ul;
     idx += 1ul;
   }
 
   if constexpr (std::endian::native == std::endian::big) {
-    const uint32_t swapped = bswap32(state[idx]);
+    const uint32_t swapped = xoodyak_utils::bswap32(state[idx]);
     std::memcpy(blk + off, &swapped, rm_bytes);
   } else {
     std::memcpy(blk + off, &state[idx], rm_bytes);

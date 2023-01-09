@@ -18,7 +18,7 @@ hash(benchmark::State& state)
   uint8_t* digest = static_cast<uint8_t*>(malloc(xoodyak::DIGEST_LEN));
 
   // generate random input bytes for hashing
-  random_data(msg, m_len);
+  xoodyak_utils::random_data(msg, m_len);
   memset(digest, 0, xoodyak::DIGEST_LEN);
 
   for (auto _ : state) {
@@ -54,10 +54,10 @@ encrypt(benchmark::State& state)
   uint8_t* dec = static_cast<uint8_t*>(std::malloc(ct_len));
 
   // generate random input bytes for AEAD
-  random_data(key, knt_len);
-  random_data(nonce, knt_len);
-  random_data(data, dt_len);
-  random_data(text, ct_len);
+  xoodyak_utils::random_data(key, knt_len);
+  xoodyak_utils::random_data(nonce, knt_len);
+  xoodyak_utils::random_data(data, dt_len);
+  xoodyak_utils::random_data(text, ct_len);
 
   for (auto _ : state) {
     xoodyak::encrypt(key, nonce, data, dt_len, text, enc, ct_len, tag);
@@ -111,10 +111,10 @@ decrypt(benchmark::State& state)
   uint8_t* dec = static_cast<uint8_t*>(std::malloc(ct_len));
 
   // generate random input bytes for AEAD
-  random_data(key, knt_len);
-  random_data(nonce, knt_len);
-  random_data(data, dt_len);
-  random_data(text, ct_len);
+  xoodyak_utils::random_data(key, knt_len);
+  xoodyak_utils::random_data(nonce, knt_len);
+  xoodyak_utils::random_data(data, dt_len);
+  xoodyak_utils::random_data(text, ct_len);
 
   xoodyak::encrypt(key, nonce, data, dt_len, text, enc, ct_len, tag);
 

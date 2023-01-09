@@ -52,10 +52,10 @@ aead(const size_t dt_len, const size_t ct_len, const mutate_t m)
   uint8_t* enc = static_cast<uint8_t*>(std::malloc(ct_len));
   uint8_t* dec = static_cast<uint8_t*>(std::malloc(ct_len));
 
-  random_data(key, knt_len);
-  random_data(nonce, knt_len);
-  random_data(data, dt_len);
-  random_data(text, ct_len);
+  xoodyak_utils::random_data(key, knt_len);
+  xoodyak_utils::random_data(nonce, knt_len);
+  xoodyak_utils::random_data(data, dt_len);
+  xoodyak_utils::random_data(text, ct_len);
 
   using namespace xoodyak;
 
