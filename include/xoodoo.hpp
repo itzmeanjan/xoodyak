@@ -61,7 +61,15 @@ cyclic_shift(uint32_t* const plane)
     // force compile-time branch evaluation
     static_assert(t == 1, "t must be = 1");
 
-    const uint32_t lane3 = std::rotl(plane[3], v);
+    const auto tmp = plane[3];
+    plane[3] = std::rotl(plane[2], v);
+    plane[2] = std::rotl(plane[1], v);
+    plane[1] = std::rotl(plane[0], v);
+    plane[0] = std::rotl(tmp, v);
+
+  } else if constexpr (t == 2) {
+    // force compile-time branch evaluation
+    static_assert(t == 2, "t must be = 2");
 
 #if defined __clang__
     // Following
@@ -74,29 +82,19 @@ cyclic_shift(uint32_t* const plane)
     // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
 
 #pragma GCC ivdep
-#pragma GCC unroll 3
+#pragma GCC unroll 4
 #endif
-    for (int i = 2; i >= 0; i--) {
-      plane[i + 1] = std::rotl(plane[i], v);
+    for (size_t i = 0; i < 4; i++) {
+      plane[i] = std::rotl(plane[i], v);
     }
 
-    plane[0] = lane3;
-  } else if constexpr (t == 2) {
-    // force compile-time branch evaluation
-    static_assert(t == 2, "t must be = 2");
-
-    plane[0] = std::rotl(plane[0], v);
-    plane[2] = std::rotl(plane[2], v);
-
     plane[0] ^= plane[2];
-    plane[2] ^= plane[0];
-    plane[0] ^= plane[2];
-
-    plane[1] = std::rotl(plane[1], v);
-    plane[3] = std::rotl(plane[3], v);
-
     plane[1] ^= plane[3];
+
+    plane[2] ^= plane[0];
     plane[3] ^= plane[1];
+
+    plane[0] ^= plane[2];
     plane[1] ^= plane[3];
   }
 }
