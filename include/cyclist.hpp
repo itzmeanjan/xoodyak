@@ -160,23 +160,22 @@ absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
            phase_t* const __restrict ph         // phase of cyclist mode
 )
 {
-  size_t b_off = 0;
-  do {
-    if (ph[0] != phase_t::Up) {
-      up<m, Zero_Color>(state, nullptr, 0ul, ph);
-    }
+  if (ph[0] != phase_t::Up) {
+    up<m, Zero_Color>(state, nullptr, 0ul, ph);
+  }
 
-    const size_t tmp = std::min(rate, m_len - b_off);
+  const size_t read = std::min(rate, m_len);
+  down<m, color>(state, msg, read, ph);
 
-    if (b_off == 0ul) {
-      down<m, color>(state, msg + b_off, tmp, ph);
-    } else {
-      down<m, Zero_Color>(state, msg + b_off, tmp, ph);
-    }
+  size_t boff = read;
+  while (boff < m_len) {
+    up<m, Zero_Color>(state, nullptr, 0ul, ph);
 
-    b_off += tmp;
+    const size_t read = std::min(rate, m_len - boff);
+    down<m, Zero_Color>(state, msg + boff, read, ph);
 
-  } while (b_off < m_len);
+    boff += read;
+  }
 }
 
 // Internal function used in Cyclist mode of operation, which produces N -bytes
@@ -255,32 +254,45 @@ crypt(uint32_t* const __restrict state,   // 384 -bit permutation state
       phase_t* const __restrict ph        // phase of cyclist mode of operation
 )
 {
-  size_t b_off = 0;
-  do {
-    const size_t tmp = std::min(R_Kout, io_len - b_off);
+  // compulsory part of crypt routine, doesn't matter whether io_len != 0
+  const size_t read = std::min(R_Kout, io_len);
+  up<mode_t::Keyed, Crypt_Color>(state, out, read, ph);
 
-    if (b_off == 0ul) {
-      up<mode_t::Keyed, Crypt_Color>(state, out + b_off, tmp, ph);
-    } else {
-      up<mode_t::Keyed, Zero_Color>(state, out + b_off, tmp, ph);
-    }
+  for (size_t i = 0; i < read; i++) {
+    out[i] ^= in[i];
+  }
 
-    for (size_t i = 0; i < tmp; i++) {
-      out[b_off + i] ^= in[b_off + i];
+  if constexpr (decrypt) {
+    // force compile-time branch evaluation
+    static_assert(decrypt, "Must be decrypting !");
+    down<mode_t::Keyed, Zero_Color>(state, out, read, ph);
+  } else {
+    // force compile-time branch evaluation
+    static_assert(!decrypt, "Must be encrypting !");
+    down<mode_t::Keyed, Zero_Color>(state, in, read, ph);
+  }
+
+  size_t boff = read;
+  while (boff < io_len) {
+    const size_t read = std::min(R_Kout, io_len - boff);
+    up<mode_t::Keyed, Zero_Color>(state, out + boff, read, ph);
+
+    for (size_t i = 0; i < read; i++) {
+      out[boff + i] ^= in[boff + i];
     }
 
     if constexpr (decrypt) {
       // force compile-time branch evaluation
       static_assert(decrypt, "Must be decrypting !");
-      down<mode_t::Keyed, Zero_Color>(state, out + b_off, tmp, ph);
+      down<mode_t::Keyed, Zero_Color>(state, out + boff, read, ph);
     } else {
       // force compile-time branch evaluation
       static_assert(!decrypt, "Must be encrypting !");
-      down<mode_t::Keyed, Zero_Color>(state, in + b_off, tmp, ph);
+      down<mode_t::Keyed, Zero_Color>(state, in + boff, read, ph);
     }
 
-    b_off += tmp;
-  } while (b_off < io_len);
+    boff += read;
+  }
 }
 
 // External function used in Cyclist mode of operation, which consumes N -bytes
