@@ -209,31 +209,79 @@ chi(uint32_t* const state)
   uint32_t b1[4];
   uint32_t b2[4];
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
-    b0[i] = ~state[i ^ 4] & state[i ^ 8];
-    b1[i] = ~state[i ^ 8] & state[i];
-    b2[i] = ~state[i] & state[i ^ 4];
+    b0[i] = ~state[4 + i] & state[8 + i];
   }
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    b1[i] = ~state[8 + i] & state[i];
+  }
+
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
+#elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    b2[i] = ~state[i] & state[4 + i];
+  }
+
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
+#elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i] ^= b0[i];
-    state[i ^ 4] ^= b1[i];
-    state[i ^ 8] ^= b2[i];
+    state[4 + i] ^= b1[i];
+    state[8 + i] ^= b2[i];
   }
 }
 
-// Single round of Xoodoo permutation, which applies following step mappings on
-// state, in order
+// Single round ( which specific round it is, denoted by `r_idx` ∈ [0, 12) ) of
+// Xoodoo permutation, which applies following step mappings on state, in order
 //
 // - mixing layer θ
 // - plane shifting ρ_west
