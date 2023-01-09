@@ -2,6 +2,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 // Xoodoo permutation which empowers Xoodyak cryptographic suite !
 namespace xoodoo {
@@ -105,43 +106,70 @@ cyclic_shift(uint32_t* const plane)
 static inline void
 theta(uint32_t* const state)
 {
-  uint32_t p0[4];
+  uint32_t p0[4]{}; // must be zero-initialized !
   uint32_t p1[4];
   uint32_t e[4];
 
-#if defined(__clang__)
-#pragma unroll 4
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    const uint32_t parity = state[i] ^ state[i ^ 4] ^ state[i ^ 8];
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
 
-    p0[i] = parity;
-    p1[i] = parity;
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
+#elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 3
+#endif
+  for (size_t i = 0; i < 12; i += 4) {
+    p0[0] ^= state[i + 0];
+    p0[1] ^= state[i + 1];
+    p0[2] ^= state[i + 2];
+    p0[3] ^= state[i + 3];
   }
+
+  std::memcpy(p1, p0, sizeof(p0));
 
   cyclic_shift<1, 5>(p0);
   cyclic_shift<1, 14>(p1);
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     e[i] = p0[i] ^ p1[i];
   }
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
-#pragma GCC unroll 4
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 3
 #endif
-  for (size_t i = 0; i < 4; i++) {
-    state[i] ^= e[i];
-    state[i ^ 4] ^= e[i];
-    state[i ^ 8] ^= e[i];
+  for (size_t i = 0; i < 12; i += 4) {
+    state[i + 0] ^= e[0];
+    state[i + 1] ^= e[1];
+    state[i + 2] ^= e[2];
+    state[i + 3] ^= e[3];
   }
 }
 
