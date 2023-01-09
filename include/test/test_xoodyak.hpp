@@ -22,8 +22,8 @@ enum mutate_t
 // compare, on randomly generated input bytes, while also mutating ( a single
 // bit flip ) decrypt routine input set to show that AEAD scheme works as
 // expected
-static inline void
-encrypt_decrypt(const size_t dt_len, const size_t ct_len, const mutate_t m)
+inline void
+aead(const size_t dt_len, const size_t ct_len, const mutate_t m)
 {
   constexpr size_t knt_len = 16ul;
 
