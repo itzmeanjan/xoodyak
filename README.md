@@ -3,23 +3,21 @@ Accelerated Xoodyak - A Lightweight Cryptographic Scheme
 
 ## Overview
 
-After implementing `ascon` & `tinyjambu` -- two finalists of NIST **L**ight **W**eight **C**ryptography competition, I've picked up `xoodyak`, which is another finalist of NIST LWC call. Xoodyak cryptograhic suite, as submitted in NIST LWC call, offers following two features
+After implementing `ascon` & `tinyjambu` -- two finalists of NIST **L**ight **W**eight **C**ryptography standardization competition, I've picked up `xoodyak`, which is another finalist of NIST LWC call. Xoodyak cryptograhic suite, as submitted in NIST LWC call, offers following two features
 
-- **[Xoodyak Hash]** Computes cryptographically secure hash of input message M, of lenth N (>=0)
-- **[Xoodyak AEAD]** Given 16 -bytes secret key, 16 -bytes public message nonce, N (>=0) -bytes associated data & M (>=0) -bytes plain text data, one party computes M -bytes encrypted text, along with 16 -bytes authentication tag. Now other side of communication can perform verified decryption of encrypted plain text, when it has access to following pieces of information
-  - 16 -bytes secret key
-  - 16 -bytes nonce
-  - 16 -bytes authentication tag
-  - N -bytes associated data
-  - M -bytes encrypted text
+Algorithm | What does it do ? | Input | Output
+--- | :-- | --: | --:
+**[Xoodyak Hash]** | Computes cryptographically secure hash of message | N (>=0) -bytes message | 32 -bytes digest
+**[Xoodyak AEAD Encrypt]** | Encrypts message and authenticates both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, N (>=0) -bytes associated data and M (>=0) -bytes plain text | M (>=0) -bytes encrypted text and 16 -bytes authentication tag
+**[Xoodyak AEAD Decrypt]** | Decrypts message and verifies authenticity of both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, 16 -bytes authentication tag, N (>=0) -bytes associated data and M (>=0) -bytes encrypted text | M (>=0) -bytes plain text and boolean verification flag
 
-Receiving party can verify authenticity & integrity of encrypted message by asserting truth value in boolean flag returned from `decrypt(...)` routine. If verification flag is not truth value, decrypted text should never be consumed.
+> **Note** Decrypting party can verify authenticity & integrity of encrypted message and associated data by asserting truth value in boolean flag returned from `decrypt(...)` routine. If verification flag is not truth value, decrypted text is not released.
 
-> Note, associated data is never encrypted
+> **Warning** Associated data is never encrypted.
 
-> AEAD -> Authenticated Encryption with Associated Data
+> **Note** AEAD -> Authenticated Encryption with Associated Data
 
-In this repository, I'm keeping a simple, zero-dependency, easy-to-use header-only C++ library ( using C++20 features ), which implements Xoodyak specification. Along with that I also maintain Python wrapper API, which under the hood makes use of C-ABI conformant shared library object.
+In this repository, I'm keeping a zero-dependency, header-only and easy-to-use C++ library ( using C++20 features ), which implements Xoodyak specification. Along with that I also maintain Python wrapper API, which under the hood makes use of C-ABI conformant shared library object.
 
 > To learn more about AEAD, see [here](https://en.wikipedia.org/wiki/Authenticated_encryption)
 
@@ -27,66 +25,52 @@ In this repository, I'm keeping a simple, zero-dependency, easy-to-use header-on
 
 > If interested in my work on `tinyjambu`, see [here](https://github.com/itzmeanjan/tinyjambu)
 
-> Xoodyak specification, which I followed during this implementation, lives [here](https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf)
+> **Note** Xoodyak specification, which I followed during this implementation, lives [here](https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf)
 
 ## Prerequisites
 
-- Ensure you've C++ compiler such as `dpcpp`/ `clang++`/ `g++`, with C++20 standard library specification implemented
-
-> I'm using
+- Ensure you've C++ compiler such as `clang++`/ `g++`, with C++20 standard library
 
 ```bash
-$dpcpp --version
-
-Intel(R) oneAPI DPC++/C++ Compiler 2022.0.0 (2022.0.0.20211123)
-Target: x86_64-unknown-linux-gnu
+$ clang++ --version
+Ubuntu clang version 14.0.0-1ubuntu1
+Target: aarch64-unknown-linux-gnu
 Thread model: posix
-InstalledDir: /opt/intel/oneapi/compiler/2022.0.2/linux/bin-llvm
-```
+InstalledDir: /usr/bin
 
-```bash
 $ g++ --version
-
 g++ (Ubuntu 11.2.0-19ubuntu1) 11.2.0
 ```
 
-- You should also have standard system development utilities such as `make`, `cmake`
-
-> I'm using
+- You should also have system development utilities such as `make`, `cmake`, `git` & `unzip`
 
 ```bash
-$ make -v
+$ make --version
+GNU Make 4.3
 
-GNU Make 4.2.1
-```
+$ cmake --version
+cmake version 3.22.1
 
-```bash
-$ cmake  --version
-
-cmake version 3.16.3
+$ git --version
+git version 2.34.1
 ```
 
 - For benchmarking Xoodyak implementation on CPU, you'll need to have `google-benchmark` installed; follow [this](https://github.com/google/benchmark/tree/60b16f1#installation)
 
-- For using/ testing Python wrapper API of Xoodyak, you need to have `python3`, along with dependencies which can be easily installed using `pip`
-
-> I'm using
+- For ensuring conformance with KATs ( as submitted to NIST LWC call ), you need to have `python3`, along with dependencies which can be easily installed using `pip`
 
 ```bash
 $ python3 --version
+Python 3.10.8
 
-Python 3.10.4
+# If you don't have pip installed
+$ sudo apt-get install python3-pip
+
+# Download Python dependencies
+$ python3 -m pip install -r wrapper/python/requirements.txt --user
 ```
 
-> Install Python dependencies
-
-```bash
-pushd wrapper/python
-python3 -m pip install -r requirements.txt # ensure you've pip installed
-popd
-```
-
-> It's better idea to isolate Xoodyak Python API dependency installation from system Python installation, using `virtualenv`
+> **Note** It can be a better idea to isolate Xoodyak Python API dependency installation from system Python installation, using `virtualenv`
 
 ```bash
 # install virtualenv itself
@@ -113,10 +97,10 @@ popd
 
 For testing functional correctness of Xoodyak cryptographic suite implementation, I've written following tests
 
-- Given 16 -bytes random secret key, 16 -bytes random public message nonce, N (>=0) -bytes random associated data & M (>=0) -bytes random plain text
+- [ **test_aead** ] : Given 16 -bytes random secret key, 16 -bytes random public message nonce, N (>=0) -bytes random associated data & M (>=0) -bytes random plain text
   - Ensure, in ideal condition, everything works as expected, while executing encrypt -> decrypt -> byte-by-byte comparison of plain & decrypted text
   - Same as above point, just that before attempting decryption, to check that claimed security properties are working as expected in this implementation, mutation of secret key/ nonce/ tag/ encrypted data/ associated data ( even a single bit flip is sufficient ) is performed, while asserting that verified decryption attempt must fail ( read boolean verification flag must not be truth value ).
-- Given Known Answer Tests as submitted with Xoodyak package in NIST LWC call, this implementation computed results are asserted against KATs, to ensure correctness & conformance to specified standard. Both Xoodyak Hash & AEAD are checked.
+- [ **test_kat** ] : Given Known Answer Tests as submitted with Xoodyak package in NIST LWC call, this implementation computed results are asserted against KATs, to ensure correctness & conformance to specified standard. Both Xoodyak Hash & AEAD are checked.
 
 ```bash
 # Just issue 
@@ -298,5 +282,5 @@ bench_xoodyak::decrypt/32/4096      16637 ns        16637 ns        42090 bytes_
 
 Xoodyak being a header-only C++ library, using it is as easy as including [`xoodyak.hpp`](https://github.com/itzmeanjan/xoodyak/blob/f366012/include/xoodyak.hpp) in your C++ program & adding `./include` to your include path. I've written two examples demonstrating usage of Xoodyak C++ API
 
-- Xoodyak Hash; see [here](https://github.com/itzmeanjan/xoodyak/blob/f366012/example/xoodyak_hash.cpp) 
-- Xoodyak AEAD; see [here](https://github.com/itzmeanjan/xoodyak/blob/f366012/example/xoodyak_aead.cpp)
+- Xoodyak Hash; see [here](./example/xoodyak_hash.cpp) 
+- Xoodyak AEAD; see [here](./example/xoodyak_aead.cpp)
