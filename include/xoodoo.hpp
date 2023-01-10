@@ -1,8 +1,8 @@
 #pragma once
 #include <bit>
+#include <cstddef>
 #include <cstdint>
-
-using size_t = std::size_t;
+#include <cstring>
 
 // Xoodoo permutation which empowers Xoodyak cryptographic suite !
 namespace xoodoo {
@@ -18,6 +18,13 @@ constexpr uint32_t RC[ROUNDS] = { 0x00000058, 0x00000038, 0x000003c0,
                                   0x00000060, 0x0000002c, 0x00000380,
                                   0x000000f0, 0x000001a0, 0x00000012 };
 
+// Compile-time check to ensure that cyclic lane rotation factor ∈ {0, 1, 2}
+consteval bool
+check_lane_shift_factor(const int t)
+{
+  return (t == 0) || (t == 1) || (t == 2);
+}
+
 // Given a plane of Xoodoo permutation state ( each plane has 4 lanes, each lane
 // of 32 -bit ), this function cyclically shifts the plane such that bit at
 // position (x, z) moves to (x+t, z+v)
@@ -29,42 +36,66 @@ constexpr uint32_t RC[ROUNDS] = { 0x00000058, 0x00000038, 0x000003c0,
 template<const int t, const int v>
 static inline void
 cyclic_shift(uint32_t* const plane)
+  requires((check_lane_shift_factor(t)))
 {
   if constexpr (t == 0) {
-#if defined(__clang__)
-#pragma unroll 4
+    // force compile-time branch evaluation
+    static_assert(t == 0, "t must be = 0");
+
+#if defined __clang__
+    // Following
+    // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+    // Following
+    // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
     for (size_t i = 0; i < 4; i++) {
       plane[i] = std::rotl(plane[i], v);
     }
   } else if constexpr (t == 1) {
-    const uint32_t lane3 = std::rotl(plane[3], v);
+    // force compile-time branch evaluation
+    static_assert(t == 1, "t must be = 1");
 
-#if defined(__clang__)
-#pragma unroll 3
+    const auto tmp = plane[3];
+    plane[3] = std::rotl(plane[2], v);
+    plane[2] = std::rotl(plane[1], v);
+    plane[1] = std::rotl(plane[0], v);
+    plane[0] = std::rotl(tmp, v);
+
+  } else if constexpr (t == 2) {
+    // force compile-time branch evaluation
+    static_assert(t == 2, "t must be = 2");
+
+#if defined __clang__
+    // Following
+    // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
-#pragma GCC unroll 3
+    // Following
+    // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 4
 #endif
-    for (int i = 2; i >= 0; i--) {
-      plane[i + 1] = std::rotl(plane[i], v);
+    for (size_t i = 0; i < 4; i++) {
+      plane[i] = std::rotl(plane[i], v);
     }
 
-    plane[0] = lane3;
-  } else if constexpr (t == 2) {
-    plane[0] = std::rotl(plane[0], v);
-    plane[2] = std::rotl(plane[2], v);
-
     plane[0] ^= plane[2];
-    plane[2] ^= plane[0];
-    plane[0] ^= plane[2];
-
-    plane[1] = std::rotl(plane[1], v);
-    plane[3] = std::rotl(plane[3], v);
-
     plane[1] ^= plane[3];
+
+    plane[2] ^= plane[0];
     plane[3] ^= plane[1];
+
+    plane[0] ^= plane[2];
     plane[1] ^= plane[3];
   }
 }
@@ -75,43 +106,70 @@ cyclic_shift(uint32_t* const plane)
 static inline void
 theta(uint32_t* const state)
 {
-  uint32_t p0[4];
+  uint32_t p0[4]{}; // must be zero-initialized !
   uint32_t p1[4];
   uint32_t e[4];
 
-#if defined(__clang__)
-#pragma unroll 4
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    const uint32_t parity = state[i] ^ state[i ^ 4] ^ state[i ^ 8];
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
 
-    p0[i] = parity;
-    p1[i] = parity;
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
+#elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 3
+#endif
+  for (size_t i = 0; i < 12; i += 4) {
+    p0[0] ^= state[i + 0];
+    p0[1] ^= state[i + 1];
+    p0[2] ^= state[i + 2];
+    p0[3] ^= state[i + 3];
   }
+
+  std::memcpy(p1, p0, sizeof(p0));
 
   cyclic_shift<1, 5>(p0);
   cyclic_shift<1, 14>(p1);
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     e[i] = p0[i] ^ p1[i];
   }
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
-#pragma GCC unroll 4
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 3
 #endif
-  for (size_t i = 0; i < 4; i++) {
-    state[i] ^= e[i];
-    state[i ^ 4] ^= e[i];
-    state[i ^ 8] ^= e[i];
+  for (size_t i = 0; i < 12; i += 4) {
+    state[i + 0] ^= e[0];
+    state[i + 1] ^= e[1];
+    state[i + 2] ^= e[2];
+    state[i + 3] ^= e[3];
   }
 }
 
@@ -151,31 +209,79 @@ chi(uint32_t* const state)
   uint32_t b1[4];
   uint32_t b2[4];
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
-    b0[i] = ~state[i ^ 4] & state[i ^ 8];
-    b1[i] = ~state[i ^ 8] & state[i];
-    b2[i] = ~state[i] & state[i ^ 4];
+    b0[i] = ~state[4 + i] & state[8 + i];
   }
 
-#if defined(__clang__)
-#pragma unroll 4
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
 #elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    b1[i] = ~state[8 + i] & state[i];
+  }
+
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
+#elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
+#pragma GCC unroll 4
+#endif
+  for (size_t i = 0; i < 4; i++) {
+    b2[i] = ~state[i] & state[4 + i];
+  }
+
+#if defined __clang__
+  // Following
+  // https://clang.llvm.org/docs/LanguageExtensions.html#extensions-for-loop-hint-optimizations
+
+#pragma clang loop unroll(enable)
+#pragma clang loop vectorize(enable)
+#elif defined __GNUG__
+  // Following
+  // https://gcc.gnu.org/onlinedocs/gcc/Loop-Specific-Pragmas.html#Loop-Specific-Pragmas
+
+#pragma GCC ivdep
 #pragma GCC unroll 4
 #endif
   for (size_t i = 0; i < 4; i++) {
     state[i] ^= b0[i];
-    state[i ^ 4] ^= b1[i];
-    state[i ^ 8] ^= b2[i];
+    state[4 + i] ^= b1[i];
+    state[8 + i] ^= b2[i];
   }
 }
 
-// Single round of Xoodoo permutation, which applies following step mappings on
-// state, in order
+// Single round ( which specific round it is, denoted by `r_idx` ∈ [0, 12) ) of
+// Xoodoo permutation, which applies following step mappings on state, in order
 //
 // - mixing layer θ
 // - plane shifting ρ_west

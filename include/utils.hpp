@@ -1,32 +1,44 @@
 #pragma once
+#include <bit>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <random>
 #include <sstream>
 
-using size_t = std::size_t;
+// Utility functions used in Xoodyak AEAD
+namespace xoodyak_utils {
+
+// Given a 32 -bit unsigned integer word, this routine swaps byte order and
+// returns byte swapped 32 -bit word.
+//
+// Adapted from
+// https://github.com/itzmeanjan/ascon/blob/151bd9f/include/utils.hpp#L13-L32
+static inline constexpr uint32_t
+bswap32(const uint32_t a)
+{
+#if defined __GNUG__
+  return __builtin_bswap32(a);
+#else
+  return ((a & 0x000000ffu) << 24) | ((a & 0x0000ff00u) << 0x08) |
+         ((a & 0x00ff0000u) >> 0x08) | ((a & 0xff000000u) >> 24);
+#endif
+}
 
 // Given four little endian bytes, this function interprets it as a 32 -bit
 // unsigned integer
 static inline uint32_t
 from_le_bytes(const uint8_t* const bytes)
 {
+  uint32_t word;
+  std::memcpy(&word, bytes, 4);
 
-#if defined __clang__
-  return (static_cast<uint32_t>(bytes[3]) << 24) |
-         (static_cast<uint32_t>(bytes[2]) << 16) |
-         (static_cast<uint32_t>(bytes[1]) << 8) |
-         (static_cast<uint32_t>(bytes[0]) << 0);
-#elif defined __GNUG__
-  uint32_t word = 0u;
-
-#pragma GCC unroll 4
-#pragma GCC ivdep
-  for (size_t i = 0; i < 4; i++) {
-    word |= static_cast<uint32_t>(bytes[i]) << (i << 3);
+  if constexpr (std::endian::native == std::endian::big) {
+    word = bswap32(word);
   }
+
   return word;
-#endif
 }
 
 // Given a 32 -bit unsigned integer, this function interprets it as a little
@@ -34,18 +46,17 @@ from_le_bytes(const uint8_t* const bytes)
 static inline void
 to_le_bytes(const uint32_t word, uint8_t* const bytes)
 {
-#if defined __clang__
-#elif defined __GNUG__
-#pragma GCC unroll 4
-#endif
-  for (size_t i = 0; i < 4; i++) {
-    bytes[i] = static_cast<uint8_t>(word >> (i << 3));
+  if constexpr (std::endian::native == std::endian::big) {
+    const uint32_t swapped = bswap32(word);
+    std::memcpy(bytes, &swapped, 4);
+  } else {
+    std::memcpy(bytes, &word, 4);
   }
 }
 
 // Given a N -bytes array, this function converts it into hex string; taken from
 // https://github.com/itzmeanjan/ascon/blob/6050ca9/include/utils.hpp#L325-L336
-static inline const std::string
+inline const std::string
 to_hex(const uint8_t* const bytes, const size_t len)
 {
   std::stringstream ss;
@@ -58,7 +69,7 @@ to_hex(const uint8_t* const bytes, const size_t len)
 }
 
 // Generate `len` -many random 8 -bit unsigned integers
-static inline void
+inline void
 random_data(uint8_t* const data, const size_t len)
 {
   std::random_device rd;
@@ -68,4 +79,6 @@ random_data(uint8_t* const data, const size_t len)
   for (size_t i = 0; i < len; i++) {
     data[i] = dis(gen);
   }
+}
+
 }

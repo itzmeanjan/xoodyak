@@ -42,4 +42,6 @@ rm LWC_*_KAT_*.txt
 
 popd
 
+make clean
+
 # ---

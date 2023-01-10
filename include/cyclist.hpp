@@ -11,7 +11,7 @@ namespace cyclist {
 //
 // See `Inside Cyclist` in section 2.2 of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
-enum phase_t
+enum class phase_t : uint8_t
 {
   Up,  // set when `up()` is invoked
   Down // set when `down()` is invoked
@@ -21,7 +21,7 @@ enum phase_t
 //
 // See section 2.2 ( read second paragraph ) of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
-enum mode_t
+enum class mode_t : uint8_t
 {
   Hash, // non-keyed permutation
   Keyed // keyed permutation
@@ -85,22 +85,28 @@ down(uint32_t* const __restrict state,
      const size_t b_len,
      phase_t* const __restrict ph)
 {
-  const size_t full_lane_cnt = b_len >> 2;
-  const size_t part_lane_byt = b_len & 3ul;
+  const size_t rm_bytes = b_len & 3ul;
+  const size_t till = b_len - rm_bytes;
 
-  for (size_t i = 0; i < full_lane_cnt; i++) {
-    const uint32_t lane = from_le_bytes(blk + (i << 2));
-    state[i] ^= lane;
+  size_t off = 0ul;
+  size_t idx = 0ul;
+  while (off < till) {
+    const size_t lane = xoodyak_utils::from_le_bytes(blk + off);
+    state[idx] ^= lane;
+
+    off += 4ul;
+    idx += 1ul;
   }
 
-  const size_t b_off = full_lane_cnt << 2;
-  uint32_t lane = 0x01u << (part_lane_byt << 3);
+  uint32_t lane = 0u;
+  std::memcpy(&lane, blk + off, rm_bytes);
 
-  for (size_t i = 0; i < part_lane_byt; i++) {
-    lane |= static_cast<uint32_t>(blk[b_off + i]) << (i << 3);
+  if constexpr (std::endian::native == std::endian::big) {
+    lane = xoodyak_utils::bswap32(lane);
   }
 
-  state[full_lane_cnt] ^= lane;
+  lane |= 0x01u << (rm_bytes * 8);
+  state[idx] ^= lane;
 
   state[11] ^= static_cast<uint32_t>(color) << 24;
   ph[0] = phase_t::Down;
@@ -126,18 +132,23 @@ up(uint32_t* const __restrict state,
 
   xoodoo::permute(state);
 
-  const size_t full_lane_cnt = b_len >> 2;
-  const size_t part_lane_byt = b_len & 3ul;
+  const size_t rm_bytes = b_len & 3ul;
+  const size_t till = b_len - rm_bytes;
 
-  for (size_t i = 0; i < full_lane_cnt; i++) {
-    to_le_bytes(state[i], blk + (i << 2));
+  size_t off = 0ul;
+  size_t idx = 0ul;
+  while (off < till) {
+    xoodyak_utils::to_le_bytes(state[idx], blk + off);
+
+    off += 4ul;
+    idx += 1ul;
   }
 
-  const size_t b_off = full_lane_cnt << 2;
-  const uint32_t lane = state[full_lane_cnt];
-
-  for (size_t i = 0; i < part_lane_byt; i++) {
-    blk[b_off + i] = static_cast<uint8_t>(lane >> (i << 3));
+  if constexpr (std::endian::native == std::endian::big) {
+    const uint32_t swapped = xoodyak_utils::bswap32(state[idx]);
+    std::memcpy(blk + off, &swapped, rm_bytes);
+  } else {
+    std::memcpy(blk + off, &state[idx], rm_bytes);
   }
 
   ph[0] = phase_t::Up;
@@ -159,23 +170,22 @@ absorb_any(uint32_t* const __restrict state,    // 384 -bit permutation state
            phase_t* const __restrict ph         // phase of cyclist mode
 )
 {
-  size_t b_off = 0;
-  do {
-    if (ph[0] != phase_t::Up) {
-      up<m, Zero_Color>(state, nullptr, 0ul, ph);
-    }
+  if (ph[0] != phase_t::Up) {
+    up<m, Zero_Color>(state, nullptr, 0ul, ph);
+  }
 
-    const size_t tmp = std::min(rate, m_len - b_off);
+  const size_t read = std::min(rate, m_len);
+  down<m, color>(state, msg, read, ph);
 
-    if (b_off == 0ul) {
-      down<m, color>(state, msg + b_off, tmp, ph);
-    } else {
-      down<m, Zero_Color>(state, msg + b_off, tmp, ph);
-    }
+  size_t boff = read;
+  while (boff < m_len) {
+    up<m, Zero_Color>(state, nullptr, 0ul, ph);
 
-    b_off += tmp;
+    const size_t read = std::min(rate, m_len - boff);
+    down<m, Zero_Color>(state, msg + boff, read, ph);
 
-  } while (b_off < m_len);
+    boff += read;
+  }
 }
 
 // Internal function used in Cyclist mode of operation, which produces N -bytes
@@ -233,36 +243,9 @@ absorb_key(
   // `key || nonce || len(nonce)`
   uint8_t msg[33];
 
-#if defined __clang__
-#pragma unroll 8
-#elif defined __GNUG__
-#pragma GCC unroll 8
-#pragma GCC ivdep
-#endif
-  for (size_t i = 0; i < 8; i++) {
-    const size_t idx0 = i << 1;
-    const size_t idx1 = idx0 ^ 1;
-
-    msg[idx0] = key[idx0];
-    msg[idx1] = key[idx1];
-  }
-
-#if defined __clang__
-#pragma unroll 8
-#elif defined __GNUG__
-#pragma GCC unroll 8
-#pragma GCC ivdep
-#endif
-  for (size_t i = 0; i < 8; i++) {
-    const size_t idx0 = i << 1;
-    const size_t idx1 = idx0 ^ 1;
-
-    msg[16ul ^ idx0] = nonce[idx0];
-    msg[16ul ^ idx1] = nonce[idx1];
-  }
-
-  // byte length of nonce, which is preknown to be 16
-  msg[32] = static_cast<uint8_t>(16u);
+  std::memcpy(msg, key, 16);
+  std::memcpy(msg + 16, nonce, 16);
+  msg[32] = static_cast<uint8_t>(16);
 
   absorb_any<mode_t::Keyed, R_Kin, AbsorbKey_Color>(state, msg, 33ul, ph);
 }
@@ -281,32 +264,45 @@ crypt(uint32_t* const __restrict state,   // 384 -bit permutation state
       phase_t* const __restrict ph        // phase of cyclist mode of operation
 )
 {
-  size_t b_off = 0;
-  do {
-    const size_t tmp = std::min(R_Kout, io_len - b_off);
+  // compulsory part of crypt routine, doesn't matter whether io_len != 0
+  const size_t read = std::min(R_Kout, io_len);
+  up<mode_t::Keyed, Crypt_Color>(state, out, read, ph);
 
-    if (b_off == 0ul) {
-      up<mode_t::Keyed, Crypt_Color>(state, out + b_off, tmp, ph);
-    } else {
-      up<mode_t::Keyed, Zero_Color>(state, out + b_off, tmp, ph);
-    }
+  for (size_t i = 0; i < read; i++) {
+    out[i] ^= in[i];
+  }
 
-#if defined __clang__
-#elif defined __GNUG__
-#pragma GCC ivdep
-#endif
-    for (size_t i = 0; i < tmp; i++) {
-      out[b_off + i] ^= in[b_off + i];
+  if constexpr (decrypt) {
+    // force compile-time branch evaluation
+    static_assert(decrypt, "Must be decrypting !");
+    down<mode_t::Keyed, Zero_Color>(state, out, read, ph);
+  } else {
+    // force compile-time branch evaluation
+    static_assert(!decrypt, "Must be encrypting !");
+    down<mode_t::Keyed, Zero_Color>(state, in, read, ph);
+  }
+
+  size_t boff = read;
+  while (boff < io_len) {
+    const size_t read = std::min(R_Kout, io_len - boff);
+    up<mode_t::Keyed, Zero_Color>(state, out + boff, read, ph);
+
+    for (size_t i = 0; i < read; i++) {
+      out[boff + i] ^= in[boff + i];
     }
 
     if constexpr (decrypt) {
-      down<mode_t::Keyed, Zero_Color>(state, out + b_off, tmp, ph);
+      // force compile-time branch evaluation
+      static_assert(decrypt, "Must be decrypting !");
+      down<mode_t::Keyed, Zero_Color>(state, out + boff, read, ph);
     } else {
-      down<mode_t::Keyed, Zero_Color>(state, in + b_off, tmp, ph);
+      // force compile-time branch evaluation
+      static_assert(!decrypt, "Must be encrypting !");
+      down<mode_t::Keyed, Zero_Color>(state, in + boff, read, ph);
     }
 
-    b_off += tmp;
-  } while (b_off < io_len);
+    boff += read;
+  }
 }
 
 // External function used in Cyclist mode of operation, which consumes N -bytes
@@ -322,8 +318,12 @@ absorb(uint32_t* const __restrict state,
        phase_t* const __restrict ph)
 {
   if constexpr (m == mode_t::Hash) {
+    // force compile-time branch evaluation
+    static_assert(m == mode_t::Hash, "Must be hashing mode !");
     absorb_any<m, R_Hash, Absorb_Color_Hash>(state, msg, m_len, ph);
   } else if constexpr (m == mode_t::Keyed) {
+    // force compile-time branch evaluation
+    static_assert(m == mode_t::Keyed, "Must be keyed mode !");
     absorb_any<m, R_Kin, Absorb_Color_Keyed>(state, msg, m_len, ph);
   }
 }
@@ -341,8 +341,12 @@ squeeze(uint32_t* const __restrict state,
         phase_t* const __restrict ph)
 {
   if constexpr (m == mode_t::Hash) {
+    // force compile-time branch evaluation
+    static_assert(m == mode_t::Hash, "Must be hashing mode !");
     squeeze_any<m, R_Hash, Squeeze_Color>(state, out, o_len, ph);
   } else if constexpr (m == mode_t::Keyed) {
+    // force compile-time branch evaluation
+    static_assert(m == mode_t::Keyed, "Must be keyed mode !");
     squeeze_any<m, R_Kout, Squeeze_Color>(state, out, o_len, ph);
   }
 }
