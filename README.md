@@ -5,17 +5,18 @@ Accelerated Xoodyak - A Lightweight Cryptographic Scheme
 
 After implementing `ascon` & `tinyjambu` -- two finalists of NIST **L**ight **W**eight **C**ryptography standardization competition, I've picked up `xoodyak`, which is another finalist of NIST LWC call. Xoodyak cryptograhic suite, as submitted in NIST LWC call, offers following two features
 
+- Cryptographic Hashing
+- Authenticated Encryption with Associated Data ( AEAD )
+
 Algorithm | What does it do ? | Input | Output
 --- | :-- | --: | --:
-**[Xoodyak Hash]** | Computes cryptographically secure hash of message | N (>=0) -bytes message | 32 -bytes digest
-**[Xoodyak AEAD Encrypt]** | Encrypts message and authenticates both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, N (>=0) -bytes associated data and M (>=0) -bytes plain text | M (>=0) -bytes encrypted text and 16 -bytes authentication tag
-**[Xoodyak AEAD Decrypt]** | Decrypts message and verifies authenticity of both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, 16 -bytes authentication tag, N (>=0) -bytes associated data and M (>=0) -bytes encrypted text | M (>=0) -bytes plain text and boolean verification flag
+**[Xoodyak Hash]** | Computes cryptographically secure digest of message | N (>=0) -bytes message | 32 -bytes digest
+**[Xoodyak AEAD Encrypt]** | Encrypts message while authenticating both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, N (>=0) -bytes associated data and M (>=0) -bytes plain text | M (>=0) -bytes encrypted text and 16 -bytes authentication tag
+**[Xoodyak AEAD Decrypt]** | Decrypts message while verifying authenticity of both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, 16 -bytes authentication tag, N (>=0) -bytes associated data and M (>=0) -bytes encrypted text | M (>=0) -bytes plain text and boolean verification flag
 
 > **Note** Decrypting party can verify authenticity & integrity of encrypted message and associated data by asserting truth value in boolean flag returned from `decrypt(...)` routine. If verification flag is not truth value, decrypted text is not released.
 
 > **Warning** Associated data is never encrypted.
-
-> **Note** AEAD -> Authenticated Encryption with Associated Data
 
 In this repository, I'm keeping a zero-dependency, header-only and easy-to-use C++ library ( using C++20 features ), which implements Xoodyak specification. Along with that I also maintain Python wrapper API, which under the hood makes use of C-ABI conformant shared library object.
 
@@ -280,7 +281,7 @@ bench_xoodyak::decrypt/32/4096      16637 ns        16637 ns        42090 bytes_
 
 ## Usage
 
-Xoodyak being a header-only C++ library, using it is as easy as including [`xoodyak.hpp`](https://github.com/itzmeanjan/xoodyak/blob/f366012/include/xoodyak.hpp) in your C++ program & adding `./include` to your include path. I've written two examples demonstrating usage of Xoodyak C++ API
+Xoodyak being a header-only C++ library, using it is as easy as including [`xoodyak.hpp`](./include/xoodyak.hpp) in your C++ program & adding `./include` to your include path. I've written two examples demonstrating usage of Xoodyak C++ API
 
 - Xoodyak Hash; see [here](./example/xoodyak_hash.cpp) 
 - Xoodyak AEAD; see [here](./example/xoodyak_aead.cpp)
