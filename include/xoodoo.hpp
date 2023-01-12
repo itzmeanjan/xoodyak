@@ -4,6 +4,10 @@
 #include <cstdint>
 #include <cstring>
 
+#if defined __SSE2__
+#include <emmintrin.h>
+#endif
+
 // Xoodoo permutation which empowers Xoodyak cryptographic suite !
 namespace xoodoo {
 
@@ -24,6 +28,57 @@ check_lane_shift_factor(const int t)
 {
   return (t == 0) || (t == 1) || (t == 2);
 }
+
+#if defined __SSE2__
+
+// Given a 128 -bit wide plane of Xoodoo permutation state ( each plane has 4
+// lanes, each lane of 32 -bit ), this function cyclically shifts the plane such
+// that bit at position (x, z) moves to (x+t, z+v), using SSE2 intrinsics.
+//
+// Note, at z = 0 bit index, least significant bit of each lane lives !
+//
+// See row 2 of table 1 in Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+//
+// Find more about SSE intrinsics here
+// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#techs=SSE_ALL
+template<const int t, const int v>
+static inline __m128i
+cyclic_shift(const __m128i plane)
+  requires(check_lane_shift_factor(t))
+{
+  static_assert(v < 32, "Can't rotate 32 -bit integer by more than 31 -bits");
+
+  if constexpr (t == 0) {
+    // force compile-time branch evaluation
+    static_assert(t == 0, "t must be = 0");
+
+    const auto shl = _mm_slli_epi32(plane, v);
+    const auto shr = _mm_srli_epi32(plane, 32 - v);
+
+    return _mm_xor_si128(shl, shr);
+  } else if constexpr (t == 1) {
+    // force compile-time branch evaluation
+    static_assert(t == 1, "t must be = 1");
+
+    const auto shl = _mm_slli_epi32(plane, v);
+    const auto shr = _mm_srli_epi32(plane, 32 - v);
+    const auto rot = _mm_xor_si128(shl, shr);
+
+    return _mm_shuffle_epi32(rot, 0b10010011);
+  } else {
+    // force compile-time branch evaluation
+    static_assert(t == 2, "t must be = 2");
+
+    const auto shl = _mm_slli_epi32(plane, v);
+    const auto shr = _mm_srli_epi32(plane, 32 - v);
+    const auto rot = _mm_xor_si128(shl, shr);
+
+    return _mm_shuffle_epi32(rot, 0b01001110);
+  }
+}
+
+#else
 
 // Given a plane of Xoodoo permutation state ( each plane has 4 lanes, each lane
 // of 32 -bit ), this function cyclically shifts the plane such that bit at
@@ -68,7 +123,7 @@ cyclic_shift(uint32_t* const plane)
     plane[1] = std::rotl(plane[0], v);
     plane[0] = std::rotl(tmp, v);
 
-  } else if constexpr (t == 2) {
+  } else {
     // force compile-time branch evaluation
     static_assert(t == 2, "t must be = 2");
 
@@ -99,6 +154,8 @@ cyclic_shift(uint32_t* const plane)
     plane[1] ^= plane[3];
   }
 }
+
+#endif
 
 // θ step mapping of Xoodoo permutation, as described in algorithm 1 of Xoodyak
 // specification
