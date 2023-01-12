@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -157,6 +158,30 @@ cyclic_shift(uint32_t* const plane)
 
 #endif
 
+#if defined __SSE2__
+
+// θ step mapping of Xoodoo permutation, as described in algorithm 1 of Xoodyak
+// specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+// implemented using SSE2 intrinsics s.t. whole state is represented using three
+// 128 -bit SSE register.
+static inline std::array<__m128i, 3>
+theta(std::array<const __m128i, 3> state)
+{
+  const auto t0 = _mm_xor_si128(state[0], state[1]);
+  const auto t1 = _mm_xor_si128(t0, state[2]);
+
+  const auto p0 = cyclic_shift<1, 5>(t1);
+  const auto p1 = cyclic_shift<1, 14>(t1);
+  const auto e = _mm_xor_si128(p0, p1);
+
+  return { _mm_xor_si128(state[0], e),
+           _mm_xor_si128(state[1], e),
+           _mm_xor_si128(state[2], e) };
+}
+
+#else
+
 // θ step mapping of Xoodoo permutation, as described in algorithm 1 of Xoodyak
 // specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
@@ -229,6 +254,8 @@ theta(uint32_t* const state)
     state[i + 3] ^= e[3];
   }
 }
+
+#endif
 
 // ρ step mapping function of Xoodoo permutation, which is templated so that it
 // can act as both `ρ_east` and `ρ_west`
