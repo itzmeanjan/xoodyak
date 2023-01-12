@@ -7,6 +7,7 @@
 
 #if defined __SSE2__
 #include <emmintrin.h>
+#pragma message("Using SSE2 for Xoodoo[12] Permutation")
 #endif
 
 // Xoodoo permutation which empowers Xoodyak cryptographic suite !
@@ -490,8 +491,33 @@ round(uint32_t* const state, const size_t r_idx)
 
 #endif
 
-// Xoodoo permutation function, where 12 rounds of Xoodoo round function applied
-// on internal state
+#if defined __SSE2__
+
+// Xoodoo permutation function, where 12 rounds of Xoodoo round function is
+// applied on internal state, using SSE2 intrinsics.
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline void
+permute(uint32_t* const state)
+{
+  std::array<__m128i, 3> s_arr{ _mm_load_si128((__m128i*)(state + 0)),
+                                _mm_load_si128((__m128i*)(state + 4)),
+                                _mm_load_si128((__m128i*)(state + 8)) };
+
+  for (size_t i = 0; i < ROUNDS; i++) {
+    s_arr = round(s_arr, i);
+  }
+
+  _mm_store_si128((__m128i*)(state + 0), s_arr[0]);
+  _mm_store_si128((__m128i*)(state + 4), s_arr[1]);
+  _mm_store_si128((__m128i*)(state + 8), s_arr[2]);
+}
+
+#else
+
+// Xoodoo permutation function, where 12 rounds of Xoodoo round function is
+// applied on internal state
 //
 // See algorithm 1 of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
@@ -502,5 +528,7 @@ permute(uint32_t* const state)
     round(state, i);
   }
 }
+
+#endif
 
 }
