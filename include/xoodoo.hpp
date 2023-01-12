@@ -257,6 +257,25 @@ theta(uint32_t* const state)
 
 #endif
 
+#if defined __SSE2__
+
+// ρ step mapping function of Xoodoo permutation, which is templated so that it
+// can act as both `ρ_east` and `ρ_west`, implemented using SSE2 vector
+// intrinsics.
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+template<const size_t t1, const size_t v1, const size_t t2, const size_t v2>
+static inline std::array<__m128i, 3>
+rho(std::array<const __m128i, 3> state)
+{
+  return { state[0],
+           cyclic_shift<t1, v1>(state[1]),
+           cyclic_shift<t2, v2>(state[2]) };
+}
+
+#else
+
 // ρ step mapping function of Xoodoo permutation, which is templated so that it
 // can act as both `ρ_east` and `ρ_west`
 //
@@ -269,6 +288,8 @@ rho(uint32_t* const state)
   cyclic_shift<t1, v1>(state + 4);
   cyclic_shift<t2, v2>(state + 8);
 }
+
+#endif
 
 // ι step mapping function of Xoodoo permutation, where round constant is XORed
 // into first lane ( x = 0 ) of first plane ( y = 0 ) of internal state
