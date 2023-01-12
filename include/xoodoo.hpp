@@ -325,6 +325,29 @@ iota(uint32_t* const state, const size_t r_idx)
 
 #endif
 
+#if defined __SSE2__
+
+// χ step mapping function of Xoodoo permutation, which is a non-linear layer
+// applied on state during permutation round, using SSE2 vector intrinsics.
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline std::array<__m128i, 3>
+chi(std::array<const __m128i, 3> state)
+{
+  const auto b0 = _mm_andnot_si128(state[1], state[2]);
+  const auto b1 = _mm_andnot_si128(state[2], state[0]);
+  const auto b2 = _mm_andnot_si128(state[0], state[1]);
+
+  return {
+    _mm_xor_si128(state[0], b0),
+    _mm_xor_si128(state[1], b1),
+    _mm_xor_si128(state[2], b2),
+  };
+}
+
+#else
+
 // χ step mapping function of Xoodoo permutation, which is a non-linear layer
 // applied on state during permutation round
 //
@@ -407,6 +430,8 @@ chi(uint32_t* const state)
     state[8 + i] ^= b2[i];
   }
 }
+
+#endif
 
 // Single round ( which specific round it is, denoted by `r_idx` ∈ [0, 12) ) of
 // Xoodoo permutation, which applies following step mappings on state, in order
