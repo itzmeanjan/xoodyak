@@ -28,7 +28,7 @@ hash(const uint8_t* const __restrict msg, // N -bytes input message to be hashed
 {
   cyclist::phase_t ph = cyclist::phase_t::Up;
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
   alignas(16)
 #endif
     uint32_t state[12]{};
@@ -55,7 +55,7 @@ encrypt(const uint8_t* const __restrict key,   // 128 -bit secret key
 {
   cyclist::phase_t ph = cyclist::phase_t::Up;
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
   alignas(16)
 #endif
     uint32_t state[12]{};
@@ -86,7 +86,7 @@ decrypt(const uint8_t* const __restrict key,   // 128 -bit secret key
 {
   cyclist::phase_t ph = cyclist::phase_t::Up;
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
   alignas(16)
 #endif
     uint32_t state[12]{};

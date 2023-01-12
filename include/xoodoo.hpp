@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <cstring>
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 #include <emmintrin.h>
 #pragma message("Using SSE2 for Xoodoo[12] Permutation")
 #endif
@@ -31,7 +31,7 @@ check_lane_shift_factor(const int t)
   return (t == 0) || (t == 1) || (t == 2);
 }
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 
 // Given a 128 -bit wide plane of Xoodoo permutation state ( each plane has 4
 // lanes, each lane of 32 -bit ), this function cyclically shifts the plane such
@@ -159,7 +159,7 @@ cyclic_shift(uint32_t* const plane)
 
 #endif
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 
 // θ step mapping of Xoodoo permutation, as described in algorithm 1 of Xoodyak
 // specification
@@ -258,7 +258,7 @@ theta(uint32_t* const state)
 
 #endif
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 
 // ρ step mapping function of Xoodoo permutation, which is templated so that it
 // can act as both `ρ_east` and `ρ_west`, implemented using SSE2 vector
@@ -292,7 +292,7 @@ rho(uint32_t* const state)
 
 #endif
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 
 // ι step mapping function of Xoodoo permutation, where single round constant is
 // XORed into first lane ( x = 0 ) of first plane ( y = 0 ) of internal state,
@@ -326,7 +326,7 @@ iota(uint32_t* const state, const size_t r_idx)
 
 #endif
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 
 // χ step mapping function of Xoodoo permutation, which is a non-linear layer
 // applied on state during permutation round, using SSE2 vector intrinsics.
@@ -434,7 +434,7 @@ chi(uint32_t* const state)
 
 #endif
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 
 // Single round ( which specific round it is, denoted by `r_idx` ∈ [0, 12) ) of
 // Xoodoo permutation, which applies following step mappings on state, in order
@@ -491,7 +491,7 @@ round(uint32_t* const state, const size_t r_idx)
 
 #endif
 
-#if defined __SSE2__
+#if defined __SSE2__ && USE_SSE2 != 0
 
 // Xoodoo permutation function, where 12 rounds of Xoodoo round function is
 // applied on internal state, using SSE2 intrinsics.
