@@ -6,6 +6,8 @@
 #include <cstring>
 
 #if defined __SSE2__ && USE_SSE2 != 0
+// SSE intrinsics are defined on
+// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#techs=SSE_ALL
 #include <emmintrin.h>
 #pragma message("Using SSE2 for Xoodoo[12] Permutation")
 #endif
