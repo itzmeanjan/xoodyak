@@ -166,7 +166,7 @@ cyclic_shift(uint32_t* const plane)
 // implemented using SSE2 intrinsics s.t. whole state is represented using three
 // 128 -bit SSE register.
 static inline std::array<__m128i, 3>
-theta(std::array<const __m128i, 3> state)
+theta(const std::array<__m128i, 3> state)
 {
   const auto t0 = _mm_xor_si128(state[0], state[1]);
   const auto t1 = _mm_xor_si128(t0, state[2]);
@@ -267,7 +267,7 @@ theta(uint32_t* const state)
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
 template<const size_t t1, const size_t v1, const size_t t2, const size_t v2>
 static inline std::array<__m128i, 3>
-rho(std::array<const __m128i, 3> state)
+rho(const std::array<__m128i, 3> state)
 {
   return { state[0],
            cyclic_shift<t1, v1>(state[1]),
@@ -333,7 +333,7 @@ iota(uint32_t* const state, const size_t r_idx)
 // See algorithm 1 of Xoodyak specification
 // https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
 static inline std::array<__m128i, 3>
-chi(std::array<const __m128i, 3> state)
+chi(const std::array<__m128i, 3> state)
 {
   const auto b0 = _mm_andnot_si128(state[1], state[2]);
   const auto b1 = _mm_andnot_si128(state[2], state[0]);
@@ -433,6 +433,35 @@ chi(uint32_t* const state)
 
 #endif
 
+#if defined __SSE2__
+
+// Single round ( which specific round it is, denoted by `r_idx` ∈ [0, 12) ) of
+// Xoodoo permutation, which applies following step mappings on state, in order
+//
+// - mixing layer θ
+// - plane shifting ρ_west
+// - addition of round constants ι
+// - non-linear layer χ
+// - plane shifting ρ_east
+//
+// using SSE2 intrinsics.
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline std::array<__m128i, 3>
+round(const std::array<__m128i, 3> state, const size_t r_idx)
+{
+  const auto t0 = theta(state);
+  const auto t1 = rho<1, 0, 0, 11>(t0);
+  const auto t2 = iota(t1[0], r_idx);
+  const auto t3 = chi({ t2, t1[1], t1[2] });
+  const auto t4 = rho<0, 1, 2, 8>(t3);
+
+  return t4;
+}
+
+#else
+
 // Single round ( which specific round it is, denoted by `r_idx` ∈ [0, 12) ) of
 // Xoodoo permutation, which applies following step mappings on state, in order
 //
@@ -458,6 +487,8 @@ round(uint32_t* const state, const size_t r_idx)
   // plane shifting
   rho<0, 1, 2, 8>(state);
 }
+
+#endif
 
 // Xoodoo permutation function, where 12 rounds of Xoodoo round function applied
 // on internal state
