@@ -291,6 +291,27 @@ rho(uint32_t* const state)
 
 #endif
 
+#if defined __SSE2__
+
+// ι step mapping function of Xoodoo permutation, where single round constant is
+// XORed into first lane ( x = 0 ) of first plane ( y = 0 ) of internal state,
+// using SSE2 intrinsics.
+//
+// See algorithm 1 of Xoodyak specification
+// https://csrc.nist.gov/CSRC/media/Projects/lightweight-cryptography/documents/finalist-round/updated-spec-doc/xoodyak-spec-final.pdf
+static inline __m128i
+iota(const __m128i plane, const size_t r_idx)
+{
+  // Attempting to load from memory address aligned to 16 -bytes boundary, see
+  // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#techs=SSE_ALL&cats=Load&text=_mm_load_si128&ig_expand=4428
+  alignas(16) const uint32_t tmp[4]{ RC[r_idx], 0u, 0u, 0u };
+  const auto rc = _mm_load_si128((__m128i*)tmp);
+
+  return _mm_xor_si128(plane, rc);
+}
+
+#else
+
 // ι step mapping function of Xoodoo permutation, where round constant is XORed
 // into first lane ( x = 0 ) of first plane ( y = 0 ) of internal state
 //
@@ -301,6 +322,8 @@ iota(uint32_t* const state, const size_t r_idx)
 {
   state[0] ^= RC[r_idx];
 }
+
+#endif
 
 // χ step mapping function of Xoodoo permutation, which is a non-linear layer
 // applied on state during permutation round
