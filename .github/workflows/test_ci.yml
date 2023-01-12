@@ -19,5 +19,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 9
     - name: Install Python dependencies
       run: python3 -m pip install -r wrapper/python/requirements.txt --user
-    - name: Execute Tests
+    - name: Execute Tests ( without SSE2 )
       run: make
+    - name: Execute Tests ( with SSE2 )
+      run: SSE2=1 make
