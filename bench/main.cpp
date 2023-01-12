@@ -1,4 +1,8 @@
+#include "bench/bench_xoodoo.hpp"
 #include "bench/bench_xoodyak.hpp"
+
+// Register for benchmarking Xoodoo[12] Permutation
+BENCHMARK(bench_xoodyak::xoodoo);
 
 // Register Xoodyak cryptographic hash function for benchmark with specified
 // size of input message bytes
