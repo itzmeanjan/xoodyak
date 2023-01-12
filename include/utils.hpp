@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <random>
 #include <sstream>
+#include <type_traits>
 
 // Utility functions used in Xoodyak AEAD
 namespace xoodyak_utils {
@@ -68,13 +69,15 @@ to_hex(const uint8_t* const bytes, const size_t len)
   return ss.str();
 }
 
-// Generate `len` -many random 8 -bit unsigned integers
+// Generate `len` -many random elements of type T | T is unsigned integral
+template<typename T>
 inline void
-random_data(uint8_t* const data, const size_t len)
+random_data(T* const data, const size_t len)
+  requires(std::is_unsigned_v<T>)
 {
   std::random_device rd;
   std::mt19937_64 gen(rd());
-  std::uniform_int_distribution<uint8_t> dis;
+  std::uniform_int_distribution<T> dis;
 
   for (size_t i = 0; i < len; i++) {
     data[i] = dis(gen);
