@@ -10,7 +10,10 @@ namespace bench_xoodyak {
 inline void
 xoodoo(benchmark::State& state)
 {
-  uint32_t st[12]{};
+#if defined __SSE2__ && USE_SSE2 != 0
+  alignas(16)
+#endif
+    uint32_t st[12]{};
   xoodyak_utils::random_data(st, 12);
 
   for (auto _ : state) {

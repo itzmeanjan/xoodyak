@@ -10,9 +10,9 @@ After implementing `ascon` & `tinyjambu` -- two finalists of NIST **L**ight **W*
 
 Algorithm | What does it do ? | Input | Output
 --- | :-- | --: | --:
-**[Xoodyak Hash]** | Computes cryptographically secure digest of message | N (>=0) -bytes message | 32 -bytes digest
-**[Xoodyak AEAD Encrypt]** | Encrypts message while authenticating both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, N (>=0) -bytes associated data and M (>=0) -bytes plain text | M (>=0) -bytes encrypted text and 16 -bytes authentication tag
-**[Xoodyak AEAD Decrypt]** | Decrypts message while verifying authenticity of both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, 16 -bytes authentication tag, N (>=0) -bytes associated data and M (>=0) -bytes encrypted text | M (>=0) -bytes plain text and boolean verification flag
+**Xoodyak Hash** | Computes cryptographically secure digest of message | N (>=0) -bytes message | 32 -bytes digest
+**Xoodyak AEAD Encrypt** | Encrypts message while authenticating both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, N (>=0) -bytes associated data and M (>=0) -bytes plain text | M (>=0) -bytes encrypted text and 16 -bytes authentication tag
+**Xoodyak AEAD Decrypt** | Decrypts message while verifying authenticity of both message and associated data | 16 -bytes secret key, 16 -bytes public message nonce, 16 -bytes authentication tag, N (>=0) -bytes associated data and M (>=0) -bytes encrypted text | M (>=0) -bytes plain text and boolean verification flag
 
 > **Note** Decrypting party can verify authenticity & integrity of encrypted message and associated data by asserting truth value in boolean flag returned from `decrypt(...)` routine. If verification flag is not truth value, decrypted text is not released.
 
@@ -54,9 +54,12 @@ cmake version 3.22.1
 
 $ git --version
 git version 2.34.1
+
+$ unzip -v
+UnZip 6.00 of 20 April 2009, by Debian. Original by Info-ZIP.
 ```
 
-- For benchmarking Xoodyak implementation on CPU, you'll need to have `google-benchmark` installed; follow [this](https://github.com/google/benchmark/tree/60b16f1#installation)
+- For benchmarking Xoodyak implementation on CPU, you'll need to have `google-benchmark` headers and library installed; follow [this](https://github.com/google/benchmark/tree/60b16f1#installation)
 
 - For ensuring conformance with KATs ( as submitted to NIST LWC call ), you need to have `python3`, along with dependencies which can be easily installed using `pip`
 
@@ -105,18 +108,24 @@ For testing functional correctness of Xoodyak cryptographic suite implementation
 
 ```bash
 # Just issue 
+
 make            # test_aead + test_kat
+SSE2=1 make     # if target CPU has SSE2
 
-# Or you may
+# --- Or you may ---
 
-make test_aead  # tests functional correctness of AEAD
-make test_kat   # tests correctness and conformance with standard
+make test_aead         # tests functional correctness of AEAD
+SSE2=1 make test_aead  # if target CPU has SSE2
+
+make test_kat          # tests correctness and conformance with standard
+SSE2=1 make test_kat   # if target CPU has SSE2
 ```
 
 ## Benchmarking
 
 For benchmarking following implementations of Xoodyak cryptographic suite, on CPU
 
+- Xoodoo[12] permutation
 - Xoodyak cryptographic hash function
 - Xoodyak Authenticated Encryption
 - Xoodyak Verified Decryption
@@ -124,7 +133,8 @@ For benchmarking following implementations of Xoodyak cryptographic suite, on CP
 issue
 
 ```bash
-make benchmark # must have `google-benchmark` library and header
+make benchmark        # must have `google-benchmark` library and header
+SSE2=1 make benchmark # if target CPU has SSE2
 ```
 
 ### On Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz ( compiled with GCC )
@@ -281,7 +291,35 @@ bench_xoodyak::decrypt/32/4096      16637 ns        16637 ns        42090 bytes_
 
 ## Usage
 
-Xoodyak being a header-only C++ library, using it is as easy as including [`xoodyak.hpp`](./include/xoodyak.hpp) in your C++ program & adding `./include` to your include path. I've written two examples demonstrating usage of Xoodyak C++ API
+Xoodyak being a header-only C++ library, using it is as easy as including [`xoodyak.hpp`](./include/xoodyak.hpp) in your C++ program & adding `./include` to your include path. All the functions of interest live under namespace `xoodyak::`. You may find some useful utility functions in [`utils.hpp`](./include/utils.hpp). I've written two examples demonstrating usage of Xoodyak C++ API
 
-- Xoodyak Hash; see [here](./example/xoodyak_hash.cpp) 
+- Xoodyak Hash; see [here](./example/xoodyak_hash.cpp)
+
+```bash
+# Use scalar implementation of Xoodoo permutation
+$ g++ -std=c++20 -Wall -Wextra -O3 -march=native -mtune=native -I ./include example/xoodyak_hash.cpp && ./a.out
+# Or you may want to use SSE2 implementation of Xoodoo permutation
+$ g++ -std=c++20 -Wall -Wextra -O3 -march=native -mtune=native -DUSE_SSE2=1 -I ./include example/xoodyak_hash.cpp && ./a.out
+
+Message         : 550398b821a1915461c061935f43b64244f00bf7b5e325d61ebba4aa1acf82455815b4605e57be4c2aec85c13074424ae1cd688d28f637ae9e7ae2900b764282
+Xoodyak Digest  : cf90c727933c5e68555e8f27c7440192854d476f436ab5b4d27c7df3ed5fdafd
+```
+
 - Xoodyak AEAD; see [here](./example/xoodyak_aead.cpp)
+
+```bash
+# With scalar implementation of Xoodoo permutation
+g++ -std=c++20 -Wall -Wextra -O3 -march=native -mtune=native -I ./include example/xoodyak_aead.cpp && ./a.out
+# With SSE2 implementation of Xoodoo permutation
+g++ -std=c++20 -Wall -Wextra -O3 -march=native -mtune=native -DUSE_SSE2=1 -I ./include example/xoodyak_aead.cpp && ./a.out
+
+Xoodyak AEAD
+
+Key                : e5a7bad5128170584b5ba804b559a234
+Nonce              : 74a9c38c241ac134b87dba198879d81a
+Associated Data    : ae4e344a85b5d767327e9fbaa16b58bffa2c3a8b0f4d30d14ed6aaf35e5ecb4f
+Plain Text         : 60e8a3bd1e51b59e769208826f9adb6eedabf8a9c2402a71704c830e03be3b1aa80cc4795a522731a72e2fa1b5258093f2a46d105a057d8c4dbb092264a65e37
+Authentication Tag : 654649376b73ffffa09545c548271d66
+Encrypted Text     : 8101b6d1ff84dc5ff91cea283263e753c7cb8898175d2521c346cd6181a46757157db4207a244a502e5429350f8e4e79249dc90d14300c8e39a7f4823633e768
+Decrypted Text     : 60e8a3bd1e51b59e769208826f9adb6eedabf8a9c2402a71704c830e03be3b1aa80cc4795a522731a72e2fa1b5258093f2a46d105a057d8c4dbb092264a65e37
+```
