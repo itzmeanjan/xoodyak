@@ -19,10 +19,10 @@ main()
   uint8_t* enc = static_cast<uint8_t*>(std::malloc(ct_len));
   uint8_t* dec = static_cast<uint8_t*>(std::malloc(ct_len));
 
-  random_data(key, knt_len);
-  random_data(nonce, knt_len);
-  random_data(data, ad_len);
-  random_data(txt, ct_len);
+  xoodyak_utils::random_data(key, knt_len);
+  xoodyak_utils::random_data(nonce, knt_len);
+  xoodyak_utils::random_data(data, ad_len);
+  xoodyak_utils::random_data(txt, ct_len);
 
   bool f = false;
 
@@ -35,6 +35,7 @@ main()
     assert((txt[i] ^ dec[i]) == 0u);
   }
 
+  using namespace xoodyak_utils;
   std::cout << "Xoodyak AEAD" << std::endl << std::endl;
   std::cout << "Key                : " << to_hex(key, knt_len) << std::endl;
   std::cout << "Nonce              : " << to_hex(nonce, knt_len) << std::endl;
